@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RestaurantOS - Plateforme de Gestion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .phase-progress { transition: width 0.3s ease; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .task-card { transition: all 0.2s ease; }
+        .modal-enter { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .notification { animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-8">
+                    <h1 class="text-xl font-bold text-blue-600">🍽️ RestaurantOS</h1>
+                    <div class="hidden md:flex space-x-4">
+                        <button onclick="showPage('dashboard')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Dashboard</button>
+                        <button onclick="showPage('projects')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Projets</button>
+                        <button onclick="showPage('tasks')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Tâches</button>
+                        <button onclick="showPage('phases')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Phases</button>
+                        <button onclick="showPage('features')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Features</button>
+                        <button onclick="showPage('ai')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">IA Assistant</button>
+                        <button onclick="showPage('analytics')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Analytics</button>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleNotifications()" class="relative p-2 hover:bg-gray-100 rounded">
+                        🔔
+                        <span id="notifBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                    </button>
+                    <span class="text-sm text-gray-600">👤 <span id="userName">Fondateur</span></span>
+                    <button onclick="logout()" class="text-sm text-red-600 hover:text-red-700">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Notifications Panel -->
+    <div id="notificationsPanel" class="hidden fixed right-4 top-16 w-80 bg-white rounded-lg shadow-xl border z-50">
+        <div class="p-4 border-b">
+            <h3 class="font-semibold">Notifications</h3>
+        </div>
+        <div id="notificationsList" class="max-h-96 overflow-y-auto divide-y">
+            <!-- Notifications dynamiques -->
+        </div>
+    </div>
+
+    <!-- PAGE: DASHBOARD -->
+    <div id="dashboard" class="page max-w-7xl mx-auto px-4 py-6">
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Restaurants signés</div>
+                <div class="text-2xl font-bold text-blue-600"><span id="signedRestaurants">3</span>/10</div>
+                <div class="text-xs text-gray-500 mt-1">Objectif mois</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Revenu MRR</div>
+                <div class="text-2xl font-bold text-green-600"><span id="mrr">1200</span>€</div>
+                <div class="text-xs text-gray-500 mt-1">/ 5000€ objectif</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Tâches complétées</div>
+                <div class="text-2xl font-bold text-purple-600"><span id="completedTasks">47</span>/120</div>
+                <div class="text-xs text-gray-500 mt-1">39% de progression</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Phases en retard</div>
+                <div class="text-2xl font-bold text-red-600"><span id="delayedPhases">2</span> ⚠️</div>
+                <div class="text-xs text-gray-500 mt-1">Action requise</div>
+            </div>
+        </div>
+
+        <!-- Projets actifs -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="p-4 border-b">
+                <h2 class="text-lg font-semibold">🚀 Projets Actifs</h2>
+            </div>
+            <div id="activeProjects" class="divide-y">
+                <!-- Projects loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Tâches urgentes et IA -->
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b">
+                    <h2 class="text-lg font-semibold">✅ Mes Tâches Urgentes</h2>
+                </div>
+                <div id="urgentTasks" class="p-4 space-y-3">
+                    <!-- Tasks loaded dynamically -->
+                </div>
+            </div>
+
+            <div class="bg-blue-50 rounded-lg shadow border-2 border-blue-200">
+                <div class="p-4 border-b border-blue-200 bg-blue-100">
+                    <h2 class="text-lg font-semibold text-blue-800">💡 IA Assistant</h2>
+                </div>
+                <div class="p-4">
+                    <div class="bg-white rounded p-3 mb-3 text-sm">
+                        <strong>Suggestion du jour:</strong><br>
+                        Tu as 2 tâches en retard. Bloque 3h ce matin pour finir le deck client "Sushi Zen". Ça débloquera la phase 2.
+                    </div>
+                    <button onclick="openAI()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                        Discuter avec l'IA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE: PROJECTS -->
+    <div id="projects" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">📁 Tous les Projets</h2>
+            <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                + Nouveau Restaurant
+            </button>
+        </div>
+
+        <div id="projectsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Projects loaded dynamically -->
+        </div>
+    </div>
+
+    <!-- PAGE: TASKS -->
+    <div id="tasks" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">📋 Gestion des Tâches</h2>
+            <div class="flex space-x-2">
+                <select onchange="filterTasks(this.value)" class="border rounded px-3 py-2">
+                    <option value="all">Toutes</option>
+                    <option value="todo">À faire</option>
+                    <option value="doing">En cours</option>
+                    <option value="blocked">Bloquées</option>
+                    <option value="done">Terminées</option>
+                </select>
+                <button onclick="openTaskModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    + Nouvelle Tâche
+                </button>
+            </div>
+        </div>
+
+        <div id="tasksBoard" class="grid md:grid-cols-4 gap-4">
+            <div class="bg-gray-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3 text-gray-700">📝 À faire (<span id="todoCount">0</span>)</h3>
+                <div id="todoColumn" class="space-y-2"></div>
+            </div>
+            <div class="bg-blue-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3 text-blue-700">🔄 En cours (<span id="doingCount">0</span>)</h3>
+                <div id="doingColumn" class="space-y-2"></div>
+            </div>
+            <div class="bg-red-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3 text-red-700">⚠️ Bloquées (<span id="blockedCount">0</span>)</h3>
+                <div id="blockedColumn" class="space-y-2"></div>
+            </div>
+            <div class="bg-green-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3 text-green-700">✅ Terminées (<span id="doneCount">0</span>)</h3>
+                <div id="doneColumn" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE: PHASES -->
+    <div id="phases" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <h2 class="text-2xl font-bold mb-6">🎯 Gestion des Phases</h2>
+        
+        <div class="space-y-6">
+            <!-- Phase 1 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b bg-blue-50">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-blue-800">Phase 1 - Démo Fonctionnelle</h3>
+                        <span class="text-sm text-gray-600">7-10 jours</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Structure HTML/CSS du site restaurant</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Interface admin basique</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Base de données (menu, réservations)</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Rédaction prompt maître IA restaurant</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Liste de 10 arguments de vente</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Étude de marché locale (3 concurrents)</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b bg-green-50">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-green-800">Phase 2 - Intégration & Intelligence</h3>
+                        <span class="text-sm text-gray-600">5-7 jours</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Connexion API OpenAI</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Système notifications email</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Générateur QR Code dynamique</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Tests prompts (20 scénarios difficiles)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Calcul économies mensuelles restaurant</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b bg-yellow-50">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-yellow-800">Phase 3 - Communication & Lancement</h3>
+                        <span class="text-sm text-gray-600">3-5 jours</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Optimisation mobile responsive</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Déploiement production (hébergement)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Accès Admin client configuré</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Identité visuelle (nom, logo, couleurs)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Script de vente cold calling</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Deck présentation client</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Process onboarding + formation</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b bg-purple-50">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-purple-800">Phase 4 - Suivi & Croissance</h3>
+                        <span class="text-sm text-gray-600">Continu</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Automatisation création sites (template)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Intégration Stripe (paiements)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Système fidélité client</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Collecte témoignages clients</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Contenu LinkedIn/TikTok régulier</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <input type="checkbox" class="mt-1 mr-2">
+                                    <span>Stratégie parrainage (20€→15€)</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE: FEATURES RESTAURANT -->
+    <div id="features" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <h2 class="text-2xl font-bold mb-6">⚙️ Features Restaurant Disponibles</h2>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+                <h3 class="font-bold text-lg mb-2">📅 Réservations en ligne</h3>
+                <p class="text-sm text-gray-600 mb-3">Système de réservation automatisé avec confirmation email</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+                <h3 class="font-bold text-lg mb-2">🍽️ Menus digitaux</h3>
+                <p class="text-sm text-gray-600 mb-3">QR Code menu dynamique mis à jour en temps réel</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+                <h3 class="font-bold text-lg mb-2">💬 Messagerie équipe</h3>
+                <p class="text-sm text-gray-600 mb-3">Communication interne pour le personnel</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
+                <h3 class="font-bold text-lg mb-2">🛒 Commandes en ligne</h3>
+                <p class="text-sm text-gray-600 mb-3">Click & collect / livraison intégrée</p>
+                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">+5€/mois</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
+                <h3 class="font-bold text-lg mb-2">📊 Statistiques avancées</h3>
+                <p class="text-sm text-gray-600 mb-3">Analytics détaillées de fréquentation et revenus</p>
+                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">+3€/mois</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-pink-500">
+                <h3 class="font-bold text-lg mb-2">🎁 Fidélisation clients</h3>
+                <p class="text-sm text-gray-600 mb-3">Programme de points et récompenses</p>
+                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">+2€/mois</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-500">
+                <h3 class="font-bold text-lg mb-2">📍 Plan du restaurant</h3>
+                <p class="text-sm text-gray-600 mb-3">Visualisation des tables et occupation</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
+                <h3 class="font-bold text-lg mb-2">🎉 Événements spéciaux</h3>
+                <p class="text-sm text-gray-600 mb-3">Gestion d'événements privés et promotions</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-teal-500">
+                <h3 class="font-bold text-lg mb-2">💳 Paiement Stripe</h3>
+                <p class="text-sm text-gray-600 mb-3">Encaissement en ligne sécurisé</p>
+                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">+2€/mois</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-cyan-500">
+                <h3 class="font-bold text-lg mb-2">⏱️ Suivi temps gagné</h3>
+                <p class="text-sm text-gray-600 mb-3">Calcul automatique du ROI en heures économisées</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-lime-500">
+                <h3 class="font-bold text-lg mb-2">📱 QR Codes dynamiques</h3>
+                <p class="text-sm text-gray-600 mb-3">Génération de QR personnalisés par table</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500">
+                <h3 class="font-bold text-lg mb-2">🔗 Parrainage</h3>
+                <p class="text-sm text-gray-600 mb-3">Réduction à 15€/mois si client recommandé</p>
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Inclus</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE: ANALYTICS -->
+    <div id="analytics" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <h2 class="text-2xl font-bold mb-6">📈 Analytics Business</h2>
+        
+        <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
+                <div class="text-sm opacity-90 mb-2">Revenus totaux (année)</div>
+                <div class="text-3xl font-bold">14 400€</div>
+                <div class="text-sm mt-2 opacity-75">+32% vs année dernière</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
+                <div class="text-sm opacity-90 mb-2">Temps gagné clients</div>
+                <div class="text-3xl font-bold">540h/mois</div>
+                <div class="text-sm mt-2 opacity-75">Pour 3 restaurants actifs</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
+                <div class="text-sm opacity-90 mb-2">Taux de conversion</div>
+                <div class="text-3xl font-bold">30%</div>
+                <div class="text-sm mt-2 opacity-75">Démo → Client signé</div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-lg mb-4">📊 Évolution MRR</h3>
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Janvier</span>
+                            <span class="font-semibold">400€</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 15%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Décembre (actuel)</span>
+                            <span class="font-semibold text-green-600">1200€</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 24%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-lg mb-4">🎯 Pipeline de vente</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold">Prospects contactés</div>
+                            <div class="text-sm text-gray-500">25 restaurants</div>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-400">25</div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold">Démos planifiées</div>
+                            <div class="text-sm text-gray-500">10 rendez-vous</div>
+                        </div>
+                        <div class="text-2xl font-bold text-yellow-500">10</div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold">Clients signés</div>
+                            <div class="text-sm text-gray-500">3 actifs</div>
+                        </div>
+                        <div class="text-2xl font-bold text-green-500">3</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mt-6">
+            <h3 class="font-bold text-lg mb-4">💰 ROI Client Moyen</h3>
+            <div class="grid md:grid-cols-4 gap-4 text-center">
+                <div class="border rounded p-4">
+                    <div class="text-3xl font-bold text-blue-600">15h</div>
+                    <div class="text-sm text-gray-600 mt-1">Temps gagné/semaine</div>
+                </div>
+                <div class="border rounded p-4">
+                    <div class="text-3xl font-bold text-green-600">900€</div>
+                    <div class="text-sm text-gray-600 mt-1">Économies/mois</div>
+                </div>
+                <div class="border rounded p-4">
+                    <div class="text-3xl font-bold text-purple-600">400€</div>
+                    <div class="text-sm text-gray-600 mt-1">Coût abonnement</div>
+                </div>
+                <div class="border rounded p-4">
+                    <div class="text-3xl font-bold text-red-600">500€</div>
+                    <div class="text-sm text-gray-600 mt-1">Bénéfice net/mois</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE: AI ASSISTANT -->
+    <div id="ai" class="page hidden max-w-4xl mx-auto px-4 py-6">
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-4 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+                <h2 class="text-xl font-bold">🤖 Assistant IA RestaurantOS</h2>
+                <p class="text-sm opacity-90">Ton copilote pour gérer ton agence</p>
+            </div>
+            
+            <div id="chatMessages" class="p-4 h-96 overflow-y-auto space-y-3">
+                <div class="bg-blue-50 p-3 rounded-lg">
+                    <strong>IA:</strong> Bonjour ! Je suis là pour t'aider. Que veux-tu faire aujourd'hui ?
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <button onclick="askAI('priorities')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Mes priorités du jour</button>
+                        <button onclick="askAI('script')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Générer un script de vente</button>
+                        <button onclick="askAI('objection')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Simuler une objection client</button>
+                        <button onclick="askAI('email')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Email de prospection</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t">
+                <div class="flex space-x-2">
+                    <input id="aiInput" type="text" placeholder="Pose ta question..." class="flex-1 border rounded px-3 py-2" onkeypress="if(event.key==='Enter') sendAIMessage()">
+                    <button onclick="sendAIMessage()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Envoyer</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 grid md:grid-cols-2 gap-4">
+            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                <h3 class="font-bold mb-2 text-green-800">🎯 Templates rapides</h3>
+                <div class="space-y-2">
+                    <button onclick="generateTemplate('pitch')" class="w-full text-left text-sm bg-white p-2 rounded hover:bg-green-50 border">Pitch elevator 30 secondes</button>
+                    <button onclick="generateTemplate('followup')" class="w-full text-left text-sm bg-white p-2 rounded hover:bg-green-50 border">Email de relance post-démo</button>
+                    <button onclick="generateTemplate('onboarding')" class="w-full text-left text-sm bg-white p-2 rounded hover:bg-green-50 border">Checklist onboarding client</button>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                <h3 class="font-bold mb-2 text-purple-800">📚 Ressources IA</h3>
+                <div class="space-y-2">
+                    <button onclick="showResource('prompts')" class="w-full text-left text-sm bg-white p-2 rounded hover:bg-purple-50 border">Bibliothèque de prompts</button>
+                    <button onclick="showResource('objections')" class="w-full text-left text-sm bg-white p-2 rounded hover:bg-purple-50 border">Guide des objections</button>
+                    <button onclick="showResource('roi')" class="w-full text-left text-sm bg-white p-2 rounded hover:bg-purple-50 border">Calculateur ROI</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nouveau Projet -->
+    <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">🍽️ Nouveau Restaurant</h3>
+            <div class="space-y-3">
+                <input id="newProjectName" type="text" placeholder="Nom du restaurant *" class="w-full border rounded px-3 py-2">
+                <input id="newProjectContact" type="email" placeholder="Email de contact *" class="w-full border rounded px-3 py-2">
+                <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2">
+                <select id="newProjectStatus" class="w-full border rounded px-3 py-2">
+                    <option value="prospect">Prospect</option>
+                    <option value="demo">Démo en cours</option>
+                    <option value="active">Client actif</option>
+                </select>
+                <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2">
+                <select id="newProjectAssignee" class="w-full border rounded px-3 py-2">
+                    <option value="Marc">Marc</option>
+                    <option value="Julie">Julie</option>
+                    <option value="Sophie">Sophie</option>
+                </select>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeProjectModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
+                <button onclick="createProject()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Créer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nouvelle Tâche -->
+    <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">➕ Nouvelle Tâche</h3>
+            <div class="space-y-3">
+                <input id="newTaskTitle" type="text" placeholder="Titre de la tâche *" class="w-full border rounded px-3 py-2">
+                <textarea id="newTaskDesc" placeholder="Description..." class="w-full border rounded px-3 py-2 h-20"></textarea>
+                <select id="newTaskProject" class="w-full border rounded px-3 py-2">
+                    <option value="">Sélectionner un projet *</option>
+                </select>
+                <select id="newTaskPhase" class="w-full border rounded px-3 py-2">
+                    <option value="1">Phase 1 - Démo</option>
+                    <option value="2">Phase 2 - Intégration</option>
+                    <option value="3">Phase 3 - Lancement</option>
+                    <option value="4">Phase 4 - Croissance</option>
+                </select>
+                <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
+                    <option value="Marc">Marc</option>
+                    <option value="Julie">Julie</option>
+                    <option value="Sophie">Sophie</option>
+                </select>
+                <select id="newTaskPriority" class="w-full border rounded px-3 py-2">
+                    <option value="low">Basse</option>
+                    <option value="medium">Moyenne</option>
+                    <option value="high">Haute</option>
+                    <option value="urgent">Urgente</option>
+                </select>
+                <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2">
+                <input id="newTaskGoal" type="text" placeholder="Objectif business" class="w-full border rounded px-3 py-2">
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeTaskModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
+                <button onclick="createTask()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Créer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Détail Projet -->
+    <div id="projectDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
+        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b sticky top-0 bg-white">
+                <div class="flex justify-between items-center">
+                    <h3 id="modalProjectName" class="text-2xl font-bold">Restaurant Name</h3>
+                    <button onclick="closeProjectDetailModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid md:grid-cols-3 gap-6 mb-6">
+                    <div class="border rounded-lg p-4">
+                        <div class="text-sm text-gray-600">Phase actuelle</div>
+                        <div id="modalPhase" class="text-2xl font-bold text-blue-600">2/4</div>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <div class="text-sm text-gray-600">Progression</div>
+                        <div id="modalProgress" class="text-2xl font-bold text-green-600">65%</div>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <div class="text-sm text-gray-600">Revenu MRR</div>
+                        <div id="modalRevenue" class="text-2xl font-bold text-purple-600">400€</div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h4 class="font-bold mb-3">📋 Tâches du projet</h4>
+                    <div id="modalTasks" class="space-y-2">
+                        <!-- Tasks loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h4 class="font-bold mb-3">📞 Informations de contact</h4>
+                    <div class="bg-gray-50 rounded p-4 space-y-2 text-sm">
+                        <div><strong>Email:</strong> <span id="modalEmail"></span></div>
+                        <div><strong>Téléphone:</strong> <span id="modalPhone"></span></div>
+                        <div><strong>Responsable:</strong> <span id="modalAssignee"></span></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold mb-3">⚙️ Modules activés</h4>
+                    <div id="modalFeatures" class="flex flex-wrap gap-2">
+                        <!-- Features loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DATA STRUCTURE
+        let data = {
+            projects: [
+                {id: 1, name: "La Bella Vita", contact: "contact@bellavita.fr", phone: "0612345678", status: "active", revenue: 400, phase: 2, progress: 65, assignee: "Marc", features: ["reservations", "menus", "messaging"]},
+                {id: 2, name: "Sushi Zen", contact: "sushi@zen.fr", phone: "0698765432", status: "demo", revenue: 350, phase: 1, progress: 20, assignee: "Julie", features: ["reservations", "menus"]},
+                {id: 3, name: "Le Gourmet", contact: "contact@legourmet.fr", phone: "0687654321", status: "active", revenue: 450, phase: 3, progress: 85, assignee: "Sophie", features: ["reservations", "menus", "messaging", "orders"]}
+            ],
+            tasks: [
+                {id: 1, projectId: 1, title: "Finaliser prompt IA", desc: "Optimiser les réponses pour les allergies", phase: 2, assignee: "Marc", status: "doing", priority: "high", deadline: "2025-12-27", goal: "Améliorer satisfaction client"},
+                {id: 2, projectId: 2, title: "Déployer site", desc: "Mise en production sur Vercel", phase: 1, assignee: "Julie", status: "blocked", priority: "urgent", deadline: "2025-12-24", goal: "Lancer la démo client"},
+                {id: 3, projectId: 1, title: "Intégrer Stripe", desc: "Paiements en ligne", phase: 2, assignee: "Marc", status: "todo", priority: "medium", deadline: "2025-12-30", goal: "Générer revenus supplémentaires"},
+                {id: 4, projectId: 3, title: "Formation client", desc: "Onboarding équipe restaurant", phase: 3, assignee: "Sophie", status: "done", priority: "high", deadline: "2025-12-23", goal: "Autonomie du client"},
+                {id: 5, projectId: 2, title: "Script de vente", desc: "Rédiger pitch pour cold calling", phase: 1, assignee: "Julie", status: "todo", priority: "high", deadline: "2025-12-26", goal: "Augmenter taux de conversion"}
+            ],
+            notifications: [
+                {id: 1, type: "warning", message: "Tâche 'Déployer site' est en retard de 1 jour", time: "Il y a 2h"},
+                {id: 2, type: "success", message: "La Bella Vita a atteint 65% de progression", time: "Il y a 5h"},
+                {id: 3, type: "info", message: "Nouvelle tâche assignée par Marc", time: "Hier"}
+            ]
+        };
+
+        let currentUser = "Marc"; // Simulé
+
+        // INIT
+        function init() {
+            loadDashboard();
+            loadProjects();
+            loadTasks();
+            loadNotifications();
+            document.getElementById('userName').textContent = currentUser;
+        }
+
+        // NAVIGATION
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(pageName).classList.remove('hidden');
+            
+            if (pageName === 'projects') loadProjects();
+            if (pageName === 'tasks') loadTasks();
+        }
+
+        // NOTIFICATIONS
+        function loadNotifications() {
+            const list = document.getElementById('notificationsList');
+            list.innerHTML = data.notifications.map(n => `
+                <div class="p-3 hover:bg-gray-50">
+                    <div class="flex items-start">
+                        <span class="mr-2">${n.type === 'warning' ? '⚠️' : n.type === 'success' ? '✅' : 'ℹ️'}</span>
+                        <div class="flex-1">
+                            <div class="text-sm">${n.message}</div>
+                            <div class="text-xs text-gray-500 mt-1">${n.time}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (data.notifications.length > 0) {
+                document.getElementById('notifBadge').classList.remove('hidden');
+                document.getElementById('notifBadge').textContent = data.notifications.length;
+            }
+        }
+
+        function toggleNotifications() {
+            const panel = document.getElementById('notificationsPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        // DASHBOARD
+        function loadDashboard() {
+            const activeProjects = document.getElementById('activeProjects');
+            activeProjects.innerHTML = data.projects.filter(p => p.status === 'active' || p.status === 'demo').map(p => `
+                <div class="p-4 hover:bg-gray-50 cursor-pointer" onclick="viewProjectDetail(${p.id})">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-semibold">${getProjectIcon(p.name)} ${p.name}</h3>
+                            <span class="text-xs text-gray-500">Phase ${p.phase} | ${p.progress}%</span>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded ${getStatusColor(p.status)}">${getStatusText(p.status)}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div class="bg-blue-600 h-2 rounded-full phase-progress" style="width: ${p.progress}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-600">
+                        <span>👤 ${p.assignee}</span>
+                        <span>💰 ${p.revenue}€/mois</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Urgent tasks
+            const urgentTasks = document.getElementById('urgentTasks');
+            const urgent = data.tasks.filter(t => t.priority === 'urgent' || t.priority === 'high').slice(0, 5);
+            urgentTasks.innerHTML = urgent.map(t => {
+                const project = data.projects.find(p => p.id === t.projectId);
+                return `
+                    <div class="border-l-4 ${getPriorityColor(t.priority)} pl-3 py-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100" onclick="editTask(${t.id})">
+                        <div class="font-medium text-sm">${t.title}</div>
+                        <div class="text-xs text-gray-600 mt-1">${project.name} • ${t.assignee} • ${formatDate(t.deadline)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update KPIs
+            document.getElementById('signedRestaurants').textContent = data.projects.filter(p => p.status === 'active').length;
+            document.getElementById('mrr').textContent = data.projects.reduce((sum, p) => sum + (p.status === 'active' ? p.revenue : 0), 0);
+            document.getElementById('completedTasks').textContent = data.tasks.filter(t => t.status === 'done').length;
+            document.getElementById('delayedPhases').textContent = data.tasks.filter(t => new Date(t.deadline) < new Date() && t.status !== 'done').length;
+        }
+
+        // PROJECTS
+        function loadProjects() {
+            const projectsList = document.getElementById('projectsList');
+            projectsList.innerHTML = data.projects.map(p => `
+                <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition cursor-pointer" onclick="viewProjectDetail(${p.id})">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg">${getProjectIcon(p.name)} ${p.name}</h3>
+                        <span class="px-2 py-1 text-xs rounded ${getStatusColor(p.status)}">${getStatusText(p.status)}</span>
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1 mb-3">
+                        <div>📧 ${p.contact}</div>
+                        <div>📱 ${p.phone}</div>
+                        <div>👤 Responsable: ${p.assignee}</div>
+                    </div>
+                    <div class="border-t pt-3">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span>Phase ${p.phase}/4</span>
+                            <span class="font-semibold">${p.progress}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: ${p.progress}%"></div>
+                        </div>
+                        <div class="mt-2 text-right">
+                            <span class="text-green-600 font-bold">${p.revenue}€/mois</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Update task modal project dropdown
+            const taskProjectSelect = document.getElementById('newTaskProject');
+            taskProjectSelect.innerHTML = '<option value="">Sélectionner un projet</option>' + 
+                data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+
+        function viewProjectDetail(id) {
+            const project = data.projects.find(p => p.id === id);
+            const projectTasks = data.tasks.filter(t => t.projectId === id);
+            
+            document.getElementById('modalProjectName').textContent = getProjectIcon(project.name) + ' ' + project.name;
+            document.getElementById('modalPhase').textContent = `${project.phase}/4`;
+            document.getElementById('modalProgress').textContent = `${project.progress}%`;
+            document.getElementById('modalRevenue').textContent = `${project.revenue}€`;
+            document.getElementById('modalEmail').textContent = project.contact;
+            document.getElementById('modalPhone').textContent = project.phone;
+            document.getElementById('modalAssignee').textContent = project.assignee;
+            
+            // Load tasks
+            document.getElementById('modalTasks').innerHTML = projectTasks.length > 0 ? projectTasks.map(t => `
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded border-l-4 ${getPriorityColor(t.priority)}">
+                    <div class="flex-1">
+                        <div class="font-medium text-sm">${t.title}</div>
+                        <div class="text-xs text-gray-500">${t.assignee} • ${formatDate(t.deadline)}</div>
+                    </div>
+                    <span class="px-2 py-1 text-xs rounded ${getTaskStatusColor(t.status)}">${getTaskStatusText(t.status)}</span>
+                </div>
+            `).join('') : '<div class="text-gray-500 text-sm">Aucune tâche pour ce projet</div>';
+            
+            // Load features
+            const featureNames = {
+                reservations: '📅 Réservations',
+                menus: '🍽️ Menus',
+                messaging: '💬 Messagerie',
+                orders: '🛒 Commandes',
+                analytics: '📊 Analytics',
+                loyalty: '🎁 Fidélité'
+            };
+            document.getElementById('modalFeatures').innerHTML = project.features.map(f => 
+                `<span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${featureNames[f] || f}</span>`
+            ).join('');
+            
+            document.getElementById('projectDetailModal').classList.remove('hidden');
+        }
+
+        function closeProjectDetailModal() {
+            document.getElementById('projectDetailModal').classList.add('hidden');
+        }
+
+        // TASKS
+        function loadTasks() {
+            const columns = {todo: [], doing: [], blocked: [], done: []};
+            data.tasks.forEach(t => columns[t.status].push(t));
+
+            Object.keys(columns).forEach(status => {
+                const col = document.getElementById(status + 'Column');
+                const count = document.getElementById(status + 'Count');
+                if (count) count.textContent = columns[status].length;
+                
+                col.innerHTML = columns[status].map(t => {
+                    const project = data.projects.find(p => p.id === t.projectId);
+                    return `
+                        <div class="task-card bg-white p-3 rounded shadow-sm border-l-4 ${getPriorityColor(t.priority)} cursor-pointer" onclick="editTask(${t.id})">
+                            <div class="font-semibold text-sm mb-1">${t.title}</div>
+                            <div class="text-xs text-gray-600 mb-2">${project.name}</div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="px-2 py-0.5 bg-gray-100 rounded">${t.assignee}</span>
+                                <span class="${isOverdue(t.deadline, t.status) ? 'text-red-600 font-semibold' : 'text-gray-500'}">${formatDate(t.deadline)}</span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-500">🎯 ${t.goal}</div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        function filterTasks(status) {
+            if (status === 'all') {
+                document.querySelectorAll('#tasksBoard > div').forEach(col => col.style.display = 'block');
+            } else {
+                Object.keys({todo: 1, doing: 1, blocked: 1, done: 1}).forEach(s => {
+                    const col = document.getElementById(s + 'Column').parentElement;
+                    col.style.display = s === status ? 'block' : 'none';
+                });
+            }
+        }
+
+        function editTask(id) {
+            const task = data.tasks.find(t => t.id === id);
+            const statuses = ['À faire', 'En cours', 'Bloquée', 'Terminée'];
+            const newStatus = prompt(`Modifier le statut de "${task.title}":\n\n1. ${statuses[0]}\n2. ${statuses[1]}\n3. ${statuses[2]}\n4. ${statuses[3]}\n\nEntrez le numéro:`);
+            const statusMap = {1: 'todo', 2: 'doing', 3: 'blocked', 4: 'done'};
+            if (statusMap[newStatus]) {
+                task.status = statusMap[newStatus];
+                loadTasks();
+                loadDashboard();
+                saveData();
+                addNotification('success', `Tâche "${task.title}" mise à jour`, 'Maintenant');
+            }
+        }
+
+        // AI ASSISTANT
+        function openAI() {
+            showPage('ai');
+        }
+
+        function askAI(type) {
+            const responses = {
+                priorities: "📋 Voici tes priorités du jour:\n\n1. 🔴 URGENT: Déployer le site Sushi Zen (en retard de 1 jour)\n   → Bloque la démo client prévue demain\n   \n2. 🟠 HAUTE: Finaliser le prompt IA La Bella Vita\n   → Impact: amélioration satisfaction client (+20%)\n   \n3. 🟡 HAUTE: Rédiger le script de vente\n   → Permet de démarcher 10 nouveaux prospects\n\n💡 Conseil: Commence par le déploiement (2h max) pour débloquer Julie sur la démo.",
+                
+                script: "📞 Script de vente - Cold Calling Restaurant\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n👋 ACCROCHE (10 sec):\n\"Bonjour [Nom], je suis [Prénom] de RestaurantOS. Nous aidons les restaurants comme le vôtre à économiser 15h par semaine grâce à l'automatisation IA.\"\n\n🎯 QUALIFICATION (20 sec):\n\"Actuellement, combien d'heures par semaine passez-vous sur:\n- La gestion des réservations?\n- Les réponses aux messages clients?\n- La mise à jour de vos menus?\"\n\n💰 PROPOSITION DE VALEUR (30 sec):\n\"Nos clients économisent en moyenne 15h/semaine, soit 900€/mois de coûts de personnel, pour un investissement de seulement 400€/mois. Vous êtes rentable dès le premier mois.\"\n\n✅ APPEL À L'ACTION:\n\"Je peux vous montrer une démo en 15 minutes. Vous êtes disponible [Jour] à [Heure] ou [Alternative]?\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n💡 Taux de conversion attendu: 30%",
+                
+                objection: "🎭 Simulation d'objection client\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n❌ OBJECTION: \"C'est trop cher pour nous, on est un petit restaurant\"\n\n✅ RÉPONSE SUGGÉRÉE:\n\n1️⃣ EMPATHIE:\n\"Je comprends totalement votre préoccupation sur les coûts.\"\n\n2️⃣ REFRAME:\n\"Justement, parlons chiffres concrets pour votre situation:\n\n📊 Calcul ROI:\n• Temps gagné: 15h/semaine\n• Coût horaire moyen: 15€/h\n• Économie mensuelle: 900€\n• Investissement: 400€/mois\n• BÉNÉFICE NET: 500€/mois\"\n\n3️⃣ PREUVE SOCIALE:\n\"Le Bella Vita, un restaurant de taille similaire, a récupéré son investissement en 2 semaines.\"\n\n4️⃣ DÉSENGAGEMENT DU RISQUE:\n\"Et si on commençait par un mois d'essai? Vous verrez les résultats concrets avant de vous engager.\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                
+                email: "📧 Email de Prospection - Template\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nOBJET: [Prénom], économisez 15h/semaine sur la gestion de votre restaurant\n\nBonjour [Prénom],\n\nJe suis tombé sur [Nom du Restaurant] et j'ai été impressionné par [élément spécifique: menu, avis Google, ambiance...].\n\nJe me permets de vous contacter car nous aidons des restaurants comme le vôtre à automatiser les tâches répétitives (réservations, messages clients, menus) grâce à l'IA.\n\n📊 Résultats de nos clients:\n• 15h/semaine économisées\n• 900€/mois de coûts en moins\n• Taux de satisfaction client +25%\n\n💡 Je vous propose une démo de 15 minutes pour vous montrer comment ça fonctionne concrètement pour votre restaurant.\n\nSeriez-vous disponible cette semaine?\n\nCordialement,\n[Signature]\n\nP.S: Voici un exemple de site que nous avons créé: [lien demo]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            };
+            
+            addAIMessage('user', type === 'priorities' ? 'Quelles sont mes priorités du jour?' : 
+                                type === 'script' ? 'Génère un script de vente pour cold calling' : 
+                                type === 'objection' ? 'Simule une objection client "c\'est trop cher"' :
+                                type === 'email' ? 'Génère un email de prospection' : '');
+            
+            setTimeout(() => addAIMessage('ai', responses[type]), 800);
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            
+            addAIMessage('user', msg);
+            input.value = '';
+            
+            setTimeout(() => {
+                let response = "🤖 Analyse en cours...\n\n";
+                
+                if (msg.toLowerCase().includes('priorité') || msg.toLowerCase().includes('faire')) {
+                    response = "D'après ton planning, tu devrais d'abord t'occuper de la tâche 'Déployer site' pour Sushi Zen car elle est en retard et bloque la démo.";
+                } else if (msg.toLowerCase().includes('retard')) {
+                    const delayed = data.tasks.filter(t => isOverdue(t.deadline, t.status));
+                    response = `Tu as ${delayed.length} tâche(s) en retard:\n` + delayed.map(t => `• ${t.title} (${formatDate(t.deadline)})`).join('\n');
+                } else if (msg.toLowerCase().includes('revenue') || msg.toLowerCase().includes('revenu')) {
+                    const mrr = data.projects.reduce((sum, p) => sum + (p.status === 'active' ? p.revenue : 0), 0);
+                    response = `Ton MRR actuel est de ${mrr}€. Pour atteindre ton objectif de 5000€, tu dois signer ${Math.ceil((5000 - mrr) / 400)} nouveaux clients.`;
+                } else {
+                    response = "Je traite ta demande... (Intégration API OpenAI à venir pour des réponses plus avancées)";
+                }
+                
+                addAIMessage('ai', response);
+            }, 1000);
+        }
+
+        function addAIMessage(type, text) {
+            const chat = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = type === 'user' ? 'bg-gray-100 p-3 rounded-lg text-right' : 'bg-blue-50 p-3 rounded-lg';
+            div.innerHTML = `<strong>${type === 'user' ? '👤 Vous' : '🤖 IA'}:</strong><br><pre class="whitespace-pre-wrap font-sans text-sm mt-2">${text}</pre>`;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function generateTemplate(type) {
+            const templates = {
+                pitch: "🎤 Pitch Elevator 30 secondes\n\n\"Nous aidons les restaurants à récupérer 15h par semaine en automatisant leurs réservations, messages clients et menus grâce à l'IA. Nos clients économisent 900€ par mois pour un investissement de 400€. Résultat : 500€ de bénéfice net dès le premier mois, sans lever le petit doigt.\"",
+                
+                followup: "📧 Email de relance post-démo\n\nObjet: Suite à notre démo - [Nom Restaurant]\n\nBonjour [Prénom],\n\nMerci pour le temps accordé hier lors de notre démo.\n\nComme discuté, voici le résumé de ce que RestaurantOS peut apporter à [Nom Restaurant]:\n\n✅ Économie de 15h/semaine\n✅ ROI positif dès le 1er mois\n✅ Site + IA déployés en 7 jours\n\nPour démarrer, il me suffit de:\n1. Votre accord\n2. Les infos de base (menu, horaires)\n3. Un acompte de 200€\n\nEt votre site est en ligne sous une semaine.\n\nQu'en pensez-vous? On lance?\n\nCordialement,\n[Signature]",
+                
+                onboarding: "📋 Checklist Onboarding Client\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nJOUR 1 - KICKOFF:\n□ Appel de bienvenue (30 min)\n□ Collecte infos (menu, photos, horaires)\n□ Création accès admin\n□ Signature contrat\n\nJOUR 2-3 - DÉVELOPPEMENT:\n□ Structure du site\n□ Design personnalisé\n□ Intégration menu\n□ Configuration IA\n\nJOUR 4-5 - INTÉGRATION:\n□ Système réservations\n□ QR Codes générés\n□ Tests fonctionnels\n□ Corrections client\n\nJOUR 6-7 - LANCEMENT:\n□ Formation équipe (1h)\n□ Déploiement production\n□ Vérification finale\n□ Go Live! 🚀\n\nSUIVI:\n□ Appel J+7 (retours)\n□ Appel J+30 (optimisations)\n□ Support continu\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            };
+            
+            addAIMessage('user', `Génère le template: ${type}`);
+            setTimeout(() => addAIMessage('ai', templates[type]), 500);
+        }
+
+        function showResource(type) {
+            const resources = {
+                prompts: "📚 Bibliothèque de Prompts IA\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n1. PROMPT RÉSERVATION:\n\"Tu es l'assistant de réservation du restaurant [Nom]. Aide le client à réserver une table en étant chaleureux et professionnel. Collecte: date, heure, nombre de personnes, préférences.\"\n\n2. PROMPT MENU:\n\"Présente le menu de manière appétissante. Pour chaque plat demandé, donne: ingrédients, allergènes, suggestion d'accompagnement.\"\n\n3. PROMPT RÉCLAMATION:\n\"Gère les réclamations avec empathie. Écoute, excuse-toi si nécessaire, propose une solution concrète immédiatement.\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                
+                objections: "💬 Guide des Objections Courantes\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n1. \"C'est trop cher\"\n→ Calculer le ROI concret\n→ Comparer au coût d'un employé\n→ Proposer un essai\n\n2. \"On n'a pas le temps\"\n→ Justement, c'est fait pour ça\n→ Installation en 7 jours\n→ Formation 1h chrono\n\n3. \"On est à l'aise avec notre système\"\n→ Combien de temps ça vous prend?\n→ Et si vous économisiez X heures?\n→ Démo gratuite pour comparer\n\n4. \"L'IA, c'est pas pour nous\"\n→ C'est déjà utilisé par vos concurrents\n→ Simple comme WhatsApp\n→ Vos clients l'utilisent déjà ailleurs\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                
+                roi: "💰 Calculateur ROI Restaurant\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nSITUATION AVANT:\n• Réservations manuelles: 5h/semaine\n• Réponses messages: 8h/semaine\n• Mise à jour menus: 2h/semaine\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nTOTAL: 15h/semaine = 60h/mois\n\nCOÛT ACTUEL:\n60h × 15€/h = 900€/mois\n\nAVEC RESTAURANTOS:\n• Investissement: 400€/mois\n• Temps gagné: 55h/mois (92%)\n• Économie: 900€ - 400€ = 500€/mois\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✅ BÉNÉFICE NET: 500€/mois\n✅ ROI: 125%\n✅ Rentable dès le 1er mois\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            };
+            
+            addAIMessage('user', `Montre-moi: ${type}`);
+            setTimeout(() => addAIMessage('ai', resources[type]), 500);
+        }
+
+        // MODALS
+        function openProjectModal() {
+            document.getElementById('projectModal').classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('projectModal').classList.add('hidden');
+        }
+
+        function createProject() {
+            const name = document.getElementById('newProjectName').value;
+            const contact = document.getElementById('newProjectContact').value;
+            const phone = document.getElementById('newProjectPhone').value;
+            const status = document.getElementById('newProjectStatus').value;
+            const revenue = parseInt(document.getElementById('newProjectRevenue').value) || 0;
+            const assignee = document.getElementById('newProjectAssignee').value;
+
+            if (!name || !contact) {
+                alert('⚠️ Nom et email obligatoires');
+                return;
+            }
+
+            const newId = Math.max(...data.projects.map(p => p.id), 0) + 1;
+            data.projects.push({
+                id: newId,
+                name,
+                contact,
+                phone,
+                status,
+                revenue,
+                phase: 1,
+                progress: 0,
+                assignee,
+                features: ['reservations', 'menus']
+            });
+
+            closeProjectModal();
+            loadProjects();
+            loadDashboard();
+            saveData();
+            addNotification('success', `Restaurant "${name}" créé avec succès`, 'Maintenant');
+            
+            // Clear form
+            document.getElementById('newProjectName').value = '';
+            document.getElementById('newProjectContact').value = '';
+            document.getElementById('newProjectPhone').value = '';
+            document.getElementById('newProjectRevenue').value = '';
+        }
+
+        function openTaskModal() {
+            document.getElementById('taskModal').classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+        }
+
+        function createTask() {
+            const title = document.getElementById('newTaskTitle').value;
+            const desc = document.getElementById('newTaskDesc').value;
+            const projectId = parseInt(document.getElementById('newTaskProject').value);
+            const phase = parseInt(document.getElementById('newTaskPhase').value);
+            const assignee = document.getElementById('newTaskAssignee').value;
+            const priority = document.getElementById('newTaskPriority').value;
+            const deadline = document.getElementById('newTaskDeadline').value;
+            const goal = document.getElementById('newTaskGoal').value;
+
+            if (!title || !projectId || !deadline) {
+                alert('⚠️ Titre, projet et deadline obligatoires');
+                return;
+            }
+
+            const newId = Math.max(...data.tasks.map(t => t.id), 0) + 1;
+            data.tasks.push({
+                id: newId,
+                projectId,
+                title,
+                desc,
+                phase,
+                assignee,
+                status: 'todo',
+                priority,
+                deadline,
+                goal
+            });
+
+            closeTaskModal();
+            loadTasks();
+            loadDashboard();
+            saveData();
+            addNotification('success', `Tâche "${title}" créée`, 'Maintenant');
+            
+            // Clear form
+            document.getElementById('newTaskTitle').value = '';
+            document.getElementById('newTaskDesc').value = '';
+            document.getElementById('newTaskDeadline').value = '';
+            document.getElementById('newTaskGoal').value = '';
+        }
+
+        // UTILITIES
+        function getProjectIcon(name) {
+            if (name.toLowerCase().includes('bella')) return '🍕';
+            if (name.toLowerCase().includes('sushi')) return '🍣';
+            if (name.toLowerCase().includes('gourmet')) return '🍷';
+            return '🍽️';
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                prospect: 'bg-gray-200 text-gray-700',
+                demo: 'bg-yellow-200 text-yellow-800',
+                active: 'bg-green-200 text-green-800',
+                churned: 'bg-red-200 text-red-800'
+            };
+            return colors[status] || 'bg-gray-200';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                prospect: 'Prospect',
+                demo: 'Démo',
+                active: 'Actif',
+                churned: 'Inactif'
+            };
+            return texts[status] || status;
+        }
+
+        function getTaskStatusColor(status) {
+            const colors = {
+                todo: 'bg-gray-200 text-gray-700',
+                doing: 'bg-blue-200 text-blue-800',
+                blocked: 'bg-red-200 text-red-800',
+                done: 'bg-green-200 text-green-800'
+            };
+            return colors[status] || 'bg-gray-200';
+        }
+
+        function getTaskStatusText(status) {
+            const texts = {
+                todo: 'À faire',
+                doing: 'En cours',
+                blocked: 'Bloquée',
+                done: 'Terminée'
+            };
+            return texts[status] || status;
+        }
+
+        function getPriorityColor(priority) {
+            const colors = {
+                low: 'border-gray-300',
+                medium: 'border-blue-400',
+                high: 'border-orange-400',
+                urgent: 'border-red-500'
+            };
+            return colors[priority] || 'border-gray-300';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            date.setHours(0, 0, 0, 0);
+            const diff = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+            
+            if (diff < 0) return `${Math.abs(diff)}j de retard`;
+            if (diff === 0) return "Aujourd'hui";
+            if (diff === 1) return "Demain";
+            return `Dans ${diff}j`;
+        }
+
+        function isOverdue(deadline, status) {
+            if (status === 'done') return false;
+            const date = new Date(deadline);
+            const today = new Date();
+            date.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0);
+            return date < today;
+        }
+
+        function addNotification(type, message, time) {
+            const newId = Math.max(...data.notifications.map(n => n.id), 0) + 1;
+            data.notifications.unshift({id: newId, type, message, time});
+            if (data.notifications.length > 10) data.notifications.pop();
+            loadNotifications();
+        }
+
+        function logout() {
+            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                alert('Déconnexion (fonctionnalité auth à implémenter)');
+            }
+        }
+
+        // PERSISTENCE
+        function saveData() {
+            try {
+                localStorage.setItem('restaurantOS_data', JSON.stringify(data));
+            } catch (e) {
+                console.error('Erreur sauvegarde:', e);
+            }
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('restaurantOS_data');
+                if (saved) {
+                    data = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Erreur chargement:', e);
+            }
+        }
+
+        // Auto-save
+        setInterval(saveData, 5000);
+
+        // Click outside to close notifications
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('notificationsPanel');
+            const btn = e.target.closest('button[onclick="toggleNotifications()"]');
+            if (!panel.contains(e.target) && !btn) {
+                panel.classList.add('hidden');
+            }
+        });
+
+        // INIT APP
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            init();
+            
+            // Set default date to today for task creation
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('newTaskDeadline').value = today;
+        });
+    </script>
+</body>
+</html>d-full" style="width: 8%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Février</span>
+                            <span class="font-semibold">750€</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounde
