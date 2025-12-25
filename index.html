@@ -5,16 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RestaurantOS - Plateforme de Gestion</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+    
     <style>
         .phase-progress { transition: width 0.3s ease; }
         .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .task-card { transition: all 0.2s ease; }
         .modal-enter { animation: fadeIn 0.2s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .notification { animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
         
-        /* Dark Mode - Plus complet */
+        /* Dark Mode Complet */
         .dark { background-color: #0f172a !important; color: #e2e8f0 !important; }
         .dark body { background-color: #0f172a !important; }
         .dark .bg-white { background-color: #1e293b !important; color: #e2e8f0 !important; }
@@ -22,126 +26,55 @@
         .dark .bg-gray-100 { background-color: #334155 !important; }
         .dark .text-gray-600 { color: #94a3b8 !important; }
         .dark .text-gray-700 { color: #cbd5e1 !important; }
-        .dark .text-gray-900 { color: #f1f5f9 !important; }
         .dark .text-gray-500 { color: #64748b !important; }
         .dark .border { border-color: #334155 !important; }
         .dark .border-b { border-bottom-color: #334155 !important; }
-        .dark .border-t { border-top-color: #334155 !important; }
         .dark .divide-y > * { border-color: #334155 !important; }
         .dark .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5) !important; }
         .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important; }
-        .dark .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important; }
         .dark .hover\:bg-gray-50:hover { background-color: #334155 !important; }
-        .dark .hover\:bg-gray-100:hover { background-color: #475569 !important; }
+        .dark nav { background-color: #1e293b !important; }
         
-        /* Navigation bar dark */
-        .dark nav { background-color: #1e293b !important; border-bottom-color: #334155 !important; }
-        
-        /* Dark mode for all form inputs */
-        .dark input[type="text"],
-        .dark input[type="email"],
-        .dark input[type="tel"],
-        .dark input[type="number"],
-        .dark input[type="date"],
-        .dark input[type="checkbox"],
-        .dark textarea,
-        .dark select {
+        .dark input, .dark textarea, .dark select {
             background-color: #334155 !important;
             color: #e2e8f0 !important;
             border-color: #475569 !important;
         }
-        
-        .dark input[type="text"]:focus,
-        .dark input[type="email"]:focus,
-        .dark input[type="tel"]:focus,
-        .dark input[type="number"]:focus,
-        .dark input[type="date"]:focus,
-        .dark textarea:focus,
-        .dark select:focus {
+        .dark input:focus, .dark textarea:focus, .dark select:focus {
             background-color: #1e293b !important;
             border-color: #3b82f6 !important;
         }
+        .dark .task-card { background-color: #1e293b !important; }
+        .dark .task-card:hover { background-color: #334155 !important; }
         
-        .dark input::placeholder,
-        .dark textarea::placeholder {
-            color: #64748b !important;
-        }
-        
-        .dark .editable-number:hover {
-            background-color: #334155 !important;
-            border-color: #3b82f6 !important;
-        }
-        
-        .dark .task-card {
-            background-color: #1e293b !important;
-        }
-        
-        .dark .task-card:hover {
-            background-color: #334155 !important;
-        }
-        
-        /* Dark mode for panels and modals */
         .dark .bg-blue-50 { background-color: #1e3a5f !important; }
         .dark .bg-green-50 { background-color: #1e3a2f !important; }
         .dark .bg-yellow-50 { background-color: #3a351e !important; }
         .dark .bg-purple-50 { background-color: #2e1e3a !important; }
-        .dark .bg-blue-100 { background-color: #1e40af !important; }
-        .dark .bg-green-100 { background-color: #166534 !important; }
-        .dark .bg-red-100 { background-color: #991b1b !important; }
-        .dark .bg-yellow-100 { background-color: #854d0e !important; }
-        .dark .bg-purple-100 { background-color: #6b21a8 !important; }
-        .dark .bg-orange-50 { background-color: #3a2e1e !important; }
         
-        /* Keep bright colors for tags and badges */
         .dark .text-blue-600 { color: #60a5fa !important; }
         .dark .text-green-600 { color: #4ade80 !important; }
         .dark .text-purple-600 { color: #c084fc !important; }
         .dark .text-red-600 { color: #f87171 !important; }
         .dark .text-orange-600 { color: #fb923c !important; }
-        .dark .text-yellow-600 { color: #fbbf24 !important; }
-        .dark .text-yellow-800 { color: #fbbf24 !important; }
-        .dark .text-blue-800 { color: #93c5fd !important; }
-        .dark .text-green-800 { color: #86efac !important; }
-        .dark .text-blue-700 { color: #60a5fa !important; }
-        .dark .text-green-700 { color: #4ade80 !important; }
-        .dark .text-red-700 { color: #f87171 !important; }
-        .dark .text-gray-700 { color: #cbd5e1 !important; }
-        
-        /* Preserve colored borders */
-        .dark .border-blue-500 { border-color: #3b82f6 !important; }
-        .dark .border-green-500 { border-color: #22c55e !important; }
-        .dark .border-yellow-500 { border-color: #eab308 !important; }
-        .dark .border-red-500 { border-color: #ef4444 !important; }
-        .dark .border-purple-500 { border-color: #a855f7 !important; }
-        .dark .border-orange-500 { border-color: #f97316 !important; }
-        .dark .border-blue-200 { border-color: #1e40af !important; }
-        .dark .border-green-200 { border-color: #166534 !important; }
-        .dark .border-purple-200 { border-color: #6b21a8 !important; }
-        
-        /* Gradients stay vibrant */
-        .dark .bg-gradient-to-br { opacity: 0.95; }
-        
-        /* Special dark backgrounds */
-        .dark [class*="bg-gradient"] { opacity: 0.95 !important; }
 
-        /* Editable fields */
-        .editable-number { 
-            border: 2px solid transparent;
-            transition: all 0.2s;
+        .firebase-status {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
         }
-        .editable-number:hover { 
-            border-color: #3b82f6;
-            background-color: #eff6ff;
-        }
-        .editable-number:focus {
-            outline: none;
-            border-color: #2563eb;
-            background-color: white;
-        }
+        .firebase-connected { background-color: #10b981; color: white; }
+        .firebase-disconnected { background-color: #ef4444; color: white; }
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Navigation -->
+    <div id="firebaseStatus" class="firebase-status firebase-disconnected">🔴 Déconnecté</div>
+
     <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
@@ -158,44 +91,40 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <button onclick="toggleDarkMode()" class="p-2 hover:bg-gray-100 rounded" title="Mode sombre">
+                    <button onclick="toggleDarkMode()" class="p-2 hover:bg-gray-100 rounded">
                         <span id="darkModeIcon">🌙</span>
                     </button>
                     <button onclick="toggleNotifications()" class="relative p-2 hover:bg-gray-100 rounded">
                         🔔
-                        <span id="notifBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                        <span id="notifBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
                     </button>
-                    <span class="text-sm text-gray-600">👤 <span id="userName">Fondateur</span></span>
-                    <button onclick="logout()" class="text-sm text-red-600 hover:text-red-700">Déconnexion</button>
+                    <span class="text-sm text-gray-600">👤 <span id="userName">Stephen</span></span>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Notifications Panel -->
     <div id="notificationsPanel" class="hidden fixed right-4 top-16 w-80 bg-white rounded-lg shadow-xl border z-50">
-        <div class="p-4 border-b">
+        <div class="p-4 border-b flex justify-between items-center">
             <h3 class="font-semibold">Notifications</h3>
+            <button onclick="clearAllNotifications()" class="text-xs text-red-600 hover:text-red-700">Tout effacer</button>
         </div>
-        <div id="notificationsList" class="max-h-96 overflow-y-auto divide-y">
-            <!-- Notifications dynamiques -->
-        </div>
+        <div id="notificationsList" class="max-h-96 overflow-y-auto divide-y"></div>
     </div>
 
-    <!-- PAGE: DASHBOARD -->
+    <!-- DASHBOARD -->
     <div id="dashboard" class="page max-w-7xl mx-auto px-4 py-6">
-        <!-- KPIs Éditables -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white p-4 rounded-lg shadow">
                 <div class="text-sm text-gray-600">Restaurants signés</div>
                 <div class="flex items-center justify-center space-x-2 mt-2">
-                    <button onclick="changeGoalValue('signedGoal', -1)" class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 text-lg">−</button>
+                    <button onclick="changeSignedCount(-1)" class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 text-lg font-bold">−</button>
                     <div class="text-center">
                         <div class="text-2xl font-bold text-blue-600">
-                            <span id="signedRestaurants">3</span>/<span id="signedGoal" contenteditable="true" class="editable-number inline-block px-2 rounded">10</span>
+                            <span id="signedRestaurants">3</span>/<span id="signedGoal">5</span>
                         </div>
                     </div>
-                    <button onclick="changeGoalValue('signedGoal', 1)" class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 text-lg">+</button>
+                    <button onclick="changeSignedCount(1)" class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 text-lg font-bold">+</button>
                 </div>
                 <div class="text-xs text-gray-500 mt-1 text-center">Objectif mois</div>
             </div>
@@ -203,10 +132,10 @@
             <div class="bg-white p-4 rounded-lg shadow">
                 <div class="text-sm text-gray-600">Revenu MRR</div>
                 <div class="text-center mt-2">
-                    <input id="mrr" type="number" value="1200" onchange="updateMRR(this.value)" class="text-2xl font-bold text-green-600 text-center w-24 border-0 editable-number rounded px-2">
+                    <input id="mrr" type="number" value="1200" onchange="updateMRR(this.value)" class="text-2xl font-bold text-green-600 text-center w-24 border-0 rounded px-2" style="background: transparent;">
                     <span class="text-2xl font-bold text-green-600">€</span>
                     <div class="text-xs text-gray-500 mt-1">
-                        / <input id="mrrGoal" type="number" value="5000" class="w-16 text-xs border-0 editable-number rounded px-1" onchange="saveData()">€ objectif
+                        / <input id="mrrGoal" type="number" value="5000" class="w-16 text-xs border-0 rounded px-1" onchange="saveData()" style="background: transparent;">€ objectif
                     </div>
                 </div>
             </div>
@@ -216,7 +145,7 @@
                 <div class="text-2xl font-bold text-purple-600 text-center mt-2">
                     <span id="completedTasks">0</span>/<span id="totalTasks">0</span>
                 </div>
-                <div class="text-xs text-gray-500 mt-1 text-center"><span id="completionPercent">0</span>% de progression</div>
+                <div class="text-xs text-gray-500 mt-1 text-center"><span id="completionPercent">0</span>%</div>
             </div>
             
             <div class="bg-white p-4 rounded-lg shadow">
@@ -226,25 +155,19 @@
             </div>
         </div>
 
-        <!-- Projets actifs -->
         <div class="bg-white rounded-lg shadow mb-6">
             <div class="p-4 border-b">
                 <h2 class="text-lg font-semibold">🚀 Projets Actifs</h2>
             </div>
-            <div id="activeProjects" class="divide-y">
-                <!-- Projects loaded dynamically -->
-            </div>
+            <div id="activeProjects" class="divide-y"></div>
         </div>
 
-        <!-- Tâches urgentes et IA -->
         <div class="grid md:grid-cols-2 gap-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="p-4 border-b">
-                    <h2 class="text-lg font-semibold">✅ Mes Tâches Prioritaires</h2>
+                    <h2 class="text-lg font-semibold">✅ Tâches Prioritaires</h2>
                 </div>
-                <div id="urgentTasks" class="p-4 space-y-3">
-                    <!-- Tasks loaded dynamically -->
-                </div>
+                <div id="urgentTasks" class="p-4 space-y-3"></div>
             </div>
 
             <div class="bg-blue-50 rounded-lg shadow border-2 border-blue-200">
@@ -253,10 +176,10 @@
                 </div>
                 <div class="p-4">
                     <div class="bg-white rounded p-3 mb-3 text-sm">
-                        <strong>Suggestion du jour:</strong><br>
-                        Commence par les tâches prioritaires pour maximiser ton efficacité.
+                        <strong>Suggestion:</strong><br>
+                        Commence par les tâches prioritaires.
                     </div>
-                    <button onclick="openAI()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                    <button onclick="showPage('ai')" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
                         Discuter avec l'IA
                     </button>
                 </div>
@@ -264,625 +187,307 @@
         </div>
     </div>
 
-    <!-- PAGE: PROJECTS -->
+    <!-- PROJECTS -->
     <div id="projects" class="page hidden max-w-7xl mx-auto px-4 py-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">📁 Tous les Projets</h2>
-            <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                + Nouveau Restaurant
-            </button>
+            <h2 class="text-2xl font-bold">📁 Projets</h2>
+            <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouveau</button>
         </div>
-
-        <div id="projectsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Projects loaded dynamically -->
-        </div>
+        <div id="projectsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
-    <!-- PAGE: TASKS -->
+    <!-- TASKS -->
     <div id="tasks" class="page hidden max-w-7xl mx-auto px-4 py-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">📋 Gestion des Tâches</h2>
-            <div class="flex space-x-2">
-                <select onchange="filterTasks(this.value)" class="border rounded px-3 py-2 bg-white">
-                    <option value="all">Toutes</option>
-                    <option value="todo">À faire</option>
-                    <option value="doing">En cours</option>
-                    <option value="blocked">Bloquées</option>
-                    <option value="done">Terminées</option>
-                </select>
-                <button onclick="openTaskModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    + Nouvelle Tâche
-                </button>
-            </div>
+            <h2 class="text-2xl font-bold">📋 Tâches</h2>
+            <button onclick="openTaskModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle</button>
         </div>
-
         <div id="tasksBoard" class="grid md:grid-cols-4 gap-4">
             <div class="bg-gray-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3 text-gray-700">📝 À faire (<span id="todoCount">0</span>)</h3>
+                <h3 class="font-semibold mb-3">📝 À faire (<span id="todoCount">0</span>)</h3>
                 <div id="todoColumn" class="space-y-2"></div>
             </div>
             <div class="bg-blue-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3 text-blue-700">🔄 En cours (<span id="doingCount">0</span>)</h3>
+                <h3 class="font-semibold mb-3">🔄 En cours (<span id="doingCount">0</span>)</h3>
                 <div id="doingColumn" class="space-y-2"></div>
             </div>
             <div class="bg-red-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3 text-red-700">⚠️ Bloquées (<span id="blockedCount">0</span>)</h3>
+                <h3 class="font-semibold mb-3">⚠️ Bloquées (<span id="blockedCount">0</span>)</h3>
                 <div id="blockedColumn" class="space-y-2"></div>
             </div>
             <div class="bg-green-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3 text-green-700">✅ Terminées (<span id="doneCount">0</span>)</h3>
+                <h3 class="font-semibold mb-3">✅ Terminées (<span id="doneCount">0</span>)</h3>
                 <div id="doneColumn" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
-    <!-- PAGE: PHASES -->
+    <!-- PHASES -->
     <div id="phases" class="page hidden max-w-7xl mx-auto px-4 py-6">
-        <h2 class="text-2xl font-bold mb-6">🎯 Gestion des Phases</h2>
-        
-        <div class="space-y-6">
-            <!-- Phase 1 -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-4 border-b bg-blue-50">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-blue-800">Phase 1 - Démo Fonctionnelle</h3>
-                        <span class="text-sm text-gray-600">7-10 jours</span>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Structure HTML/CSS du site restaurant</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Interface admin basique</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Base de données (menu, réservations)</span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Rédaction prompt maître IA restaurant</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Liste de 10 arguments de vente</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Étude de marché locale (3 concurrents)</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 2 -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-4 border-b bg-green-50">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-green-800">Phase 2 - Intégration & Intelligence</h3>
-                        <span class="text-sm text-gray-600">5-7 jours</span>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Connexion API OpenAI</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Système notifications email</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Générateur QR Code dynamique</span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Tests prompts (20 scénarios difficiles)</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Calcul économies mensuelles restaurant</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 3 -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-4 border-b bg-yellow-50">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-yellow-800">Phase 3 - Communication & Lancement</h3>
-                        <span class="text-sm text-gray-600">3-5 jours</span>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Optimisation mobile responsive</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Déploiement production (hébergement)</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Accès Admin client configuré</span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Identité visuelle (nom, logo, couleurs)</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Script de vente cold calling</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Deck présentation client</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Process onboarding + formation</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 4 -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-4 border-b bg-purple-50">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-purple-800">Phase 4 - Suivi & Croissance</h3>
-                        <span class="text-sm text-gray-600">Continu</span>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <h4 class="font-semibold mb-2 text-blue-600">💻 CODE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Automatisation création sites (template)</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Intégration Stripe (paiements)</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Système fidélité client</span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold mb-2 text-purple-600">🧠 IA & STRATÉGIE</h4>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Collecte témoignages clients</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Contenu LinkedIn/TikTok régulier</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <input type="checkbox" class="mt-1 mr-2">
-                                    <span>Stratégie parrainage (20€→15€)</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">🎯 Phases</h2>
+            <button onclick="openPhaseModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Ajouter</button>
         </div>
+        <div id="phasesList" class="space-y-6"></div>
     </div>
 
-    <!-- PAGE: FEATURES RESTAURANT -->
+    <!-- FEATURES -->
     <div id="features" class="page hidden max-w-7xl mx-auto px-4 py-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">⚙️ Features Restaurant Disponibles</h2>
-            <button onclick="openFeatureModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                + Ajouter une Feature
-            </button>
+            <h2 class="text-2xl font-bold">⚙️ Features</h2>
+            <button onclick="openFeatureModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Ajouter</button>
         </div>
-        
-        <div id="featuresList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Features loaded dynamically -->
-        </div>
+        <div id="featuresList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
-    <!-- PAGE: ANALYTICS -->
+    <!-- ANALYTICS -->
     <div id="analytics" class="page hidden max-w-7xl mx-auto px-4 py-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">📈 Analytics Business</h2>
-            <button onclick="openAnalyticsModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                ⚙️ Modifier les métriques
-            </button>
+            <h2 class="text-2xl font-bold">📈 Analytics</h2>
+            <button onclick="openAnalyticsModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">⚙️ Modifier</button>
         </div>
         
         <div class="grid md:grid-cols-3 gap-6 mb-6">
             <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
-                <div class="text-sm opacity-90 mb-2">Revenus totaux (année)</div>
+                <div class="text-sm opacity-90 mb-2">Revenus annuels</div>
                 <div class="text-3xl font-bold"><span id="analyticsYearRevenue">14400</span>€</div>
-                <div class="text-sm mt-2 opacity-75">+<span id="analyticsYearGrowth">32</span>% vs année dernière</div>
+                <div class="text-sm mt-2 opacity-75">+<span id="analyticsYearGrowth">32</span>%</div>
             </div>
-
             <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
-                <div class="text-sm opacity-90 mb-2">Temps gagné clients</div>
+                <div class="text-sm opacity-90 mb-2">Temps gagné</div>
                 <div class="text-3xl font-bold"><span id="analyticsTimeSaved">540</span>h/mois</div>
-                <div class="text-sm mt-2 opacity-75">Pour <span id="analyticsActiveClients">3</span> restaurants actifs</div>
             </div>
-
             <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
-                <div class="text-sm opacity-90 mb-2">Taux de conversion</div>
+                <div class="text-sm opacity-90 mb-2">Taux conversion</div>
                 <div class="text-3xl font-bold"><span id="analyticsConversionRate">30</span>%</div>
-                <div class="text-sm mt-2 opacity-75">Démo → Client signé</div>
             </div>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 class="font-bold text-lg mb-4">💰 Taille des Contrats</h3>
-            <div id="contractSizeList" class="space-y-3">
-                <!-- Contract sizes loaded dynamically -->
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">💰 Répartition Revenus</h3>
+                <button onclick="openRevenueModal()" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">✏️</button>
             </div>
-            <button onclick="openContractModal()" class="mt-4 w-full border-2 border-dashed border-gray-300 rounded p-3 hover:border-blue-500 hover:bg-blue-50 text-gray-600">
-                + Ajouter un type de contrat
-            </button>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="font-bold text-lg mb-4">📊 Répartition des revenus</h3>
-            <div class="grid md:grid-cols-2 gap-6">
-                <div>
-                    <h4 class="font-semibold mb-3 text-sm text-gray-600">Par type de contrat</h4>
-                    <div id="revenueByContractType" class="space-y-2">
-                        <!-- Revenue breakdown loaded dynamically -->
-                    </div>
-                </div>
-                <div>
-                    <h4 class="font-semibold mb-3 text-sm text-gray-600">Statistiques</h4>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span>Contrat moyen:</span>
-                            <span class="font-bold"><span id="avgContract">400</span>€/mois</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Plus gros contrat:</span>
-                            <span class="font-bold"><span id="maxContract">450</span>€/mois</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Plus petit contrat:</span>
-                            <span class="font-bold"><span id="minContract">350</span>€/mois</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="revenueBreakdownList" class="space-y-3"></div>
         </div>
     </div>
 
-    <!-- PAGE: AI ASSISTANT -->
+    <!-- AI -->
     <div id="ai" class="page hidden max-w-4xl mx-auto px-4 py-6">
         <div class="bg-white rounded-lg shadow">
-            <div class="p-4 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
-                <h2 class="text-xl font-bold">🤖 Assistant IA RestaurantOS</h2>
-                <p class="text-sm opacity-90">Ton copilote pour gérer ton agence</p>
+            <div class="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+                <h2 class="text-xl font-bold">🤖 Assistant IA</h2>
             </div>
-            
-            <div id="chatMessages" class="p-4 h-96 overflow-y-auto space-y-3">
+            <div id="chatMessages" class="p-4 h-96 overflow-y-auto">
                 <div class="bg-blue-50 p-3 rounded-lg">
-                    <strong>IA:</strong> Bonjour ! Je suis là pour t'aider. Que veux-tu faire aujourd'hui ?
-                    <div class="mt-2 flex flex-wrap gap-2">
-                        <button onclick="askAI('priorities')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Mes priorités du jour</button>
-                        <button onclick="askAI('script')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Générer un script de vente</button>
-                        <button onclick="askAI('objection')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Simuler une objection client</button>
-                        <button onclick="askAI('email')" class="text-xs bg-white px-3 py-1 rounded border hover:bg-gray-50">Email de prospection</button>
-                    </div>
+                    <strong>IA:</strong> Bonjour ! Comment puis-je t'aider ?
                 </div>
             </div>
-            
             <div class="p-4 border-t">
                 <div class="flex space-x-2">
-                    <input id="aiInput" type="text" placeholder="Pose ta question..." class="flex-1 border rounded px-3 py-2 bg-white" onkeypress="if(event.key==='Enter') sendAIMessage()">
+                    <input id="aiInput" type="text" placeholder="Pose ta question..." class="flex-1 border rounded px-3 py-2" onkeypress="if(event.key==='Enter') sendAIMessage()">
                     <button onclick="sendAIMessage()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Envoyer</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Nouveau/Modifier Projet -->
-    <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 id="projectModalTitle" class="text-xl font-bold mb-4">🍽️ Nouveau Restaurant</h3>
+    <!-- MODALS (simplifié pour tester) -->
+    <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Nouveau Restaurant</h3>
             <div class="space-y-3">
-                <input id="editProjectId" type="hidden">
-                <input id="newProjectName" type="text" placeholder="Nom du restaurant *" class="w-full border rounded px-3 py-2 bg-white">
-                <input id="newProjectContact" type="email" placeholder="Email de contact *" class="w-full border rounded px-3 py-2 bg-white">
-                <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2 bg-white">
-                <select id="newProjectStatus" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="prospect">Prospect</option>
-                    <option value="demo">Démo en cours</option>
-                    <option value="active">Client actif</option>
-                    <option value="churned">Inactif</option>
-                </select>
-                <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2 bg-white">
-                <select id="newProjectAssignee" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="Marc">Marc</option>
-                    <option value="Julie">Julie</option>
-                    <option value="Sophie">Sophie</option>
-                </select>
-                <select id="newProjectPhase" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="1">Phase 1 - Démo</option>
-                    <option value="2">Phase 2 - Intégration</option>
-                    <option value="3">Phase 3 - Lancement</option>
-                    <option value="4">Phase 4 - Croissance</option>
-                </select>
-                <input id="newProjectProgress" type="number" min="0" max="100" placeholder="Progression (%)" class="w-full border rounded px-3 py-2 bg-white">
-                
-                <div>
-                    <label class="block text-sm font-semibold mb-2">Features activées:</label>
-                    <div id="projectFeaturesCheckboxes" class="space-y-2 max-h-40 overflow-y-auto border rounded p-3 bg-gray-50">
-                        <!-- Features checkboxes loaded dynamically -->
-                    </div>
-                </div>
+                <input id="newProjectName" type="text" placeholder="Nom *" class="w-full border rounded px-3 py-2">
+                <input id="newProjectContact" type="email" placeholder="Email *" class="w-full border rounded px-3 py-2">
+                <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2">
+                <input id="newProjectRevenue" type="number" placeholder="Revenu (€)" class="w-full border rounded px-3 py-2">
             </div>
             <div class="flex space-x-2 mt-4">
-                <button onclick="closeProjectModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
-                <button onclick="saveProject()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Enregistrer</button>
+                <button onclick="closeProjectModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveProject()" class="flex-1 bg-blue-600 text-white rounded py-2">Créer</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Nouvelle Tâche -->
-    <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
+    <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-xl font-bold mb-4">➕ Nouvelle Tâche</h3>
+            <h3 class="text-xl font-bold mb-4">Nouvelle Tâche</h3>
             <div class="space-y-3">
-                <input id="newTaskTitle" type="text" placeholder="Titre de la tâche *" class="w-full border rounded px-3 py-2 bg-white">
-                <textarea id="newTaskDesc" placeholder="Description..." class="w-full border rounded px-3 py-2 h-20 bg-white"></textarea>
-                <select id="newTaskProject" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="">Sélectionner un projet *</option>
+                <input id="newTaskTitle" type="text" placeholder="Titre *" class="w-full border rounded px-3 py-2">
+                <select id="newTaskProject" class="w-full border rounded px-3 py-2">
+                    <option value="">Projet *</option>
                 </select>
-                <select id="newTaskPhase" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="1">Phase 1 - Démo</option>
-                    <option value="2">Phase 2 - Intégration</option>
-                    <option value="3">Phase 3 - Lancement</option>
-                    <option value="4">Phase 4 - Croissance</option>
+                <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
+                    <option value="Stephen">Stephen</option>
+                    <option value="Eva">Eva</option>
                 </select>
-                <select id="newTaskAssignee" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="Marc">Marc</option>
-                    <option value="Julie">Julie</option>
-                    <option value="Sophie">Sophie</option>
-                </select>
-                <select id="newTaskPriority" class="w-full border rounded px-3 py-2 bg-white">
+                <select id="newTaskPriority" class="w-full border rounded px-3 py-2">
                     <option value="low">Basse</option>
                     <option value="medium">Moyenne</option>
                     <option value="high">Haute</option>
                     <option value="urgent">Urgente</option>
                 </select>
-                <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2 bg-white">
-                <input id="newTaskGoal" type="text" placeholder="Objectif business" class="w-full border rounded px-3 py-2 bg-white">
             </div>
             <div class="flex space-x-2 mt-4">
-                <button onclick="closeTaskModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
-                <button onclick="createTask()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Créer</button>
+                <button onclick="closeTaskModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="createTask()" class="flex-1 bg-blue-600 text-white rounded py-2">Créer</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Détail Projet -->
-    <div id="projectDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
-        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b sticky top-0 bg-white">
-                <div class="flex justify-between items-center">
-                    <h3 id="modalProjectName" class="text-2xl font-bold">Restaurant Name</h3>
-                    <div class="flex space-x-2">
-                        <button onclick="editProjectFromDetail()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">✏️ Modifier</button>
-                        <button onclick="deleteProjectConfirm()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">🗑️ Supprimer</button>
-                        <button onclick="closeProjectDetailModal()" class="text-gray-500 hover:text-gray-700 text-2xl ml-2">&times;</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-6">
-                <div class="grid md:grid-cols-3 gap-6 mb-6">
-                    <div class="border rounded-lg p-4">
-                        <div class="text-sm text-gray-600">Phase actuelle</div>
-                        <div id="modalPhase" class="text-2xl font-bold text-blue-600">2/4</div>
-                    </div>
-                    <div class="border rounded-lg p-4">
-                        <div class="text-sm text-gray-600">Progression</div>
-                        <div id="modalProgress" class="text-2xl font-bold text-green-600">65%</div>
-                    </div>
-                    <div class="border rounded-lg p-4">
-                        <div class="text-sm text-gray-600">Revenu MRR</div>
-                        <div id="modalRevenue" class="text-2xl font-bold text-purple-600">400€</div>
-                    </div>
-                </div>
-
-                <div class="mb-6">
-                    <h4 class="font-bold mb-3">📋 Tâches du projet</h4>
-                    <div id="modalTasks" class="space-y-2">
-                        <!-- Tasks loaded dynamically -->
-                    </div>
-                </div>
-
-                <div class="mb-6">
-                    <h4 class="font-bold mb-3">📞 Informations de contact</h4>
-                    <div class="bg-gray-50 rounded p-4 space-y-2 text-sm">
-                        <div><strong>Email:</strong> <span id="modalEmail"></span></div>
-                        <div><strong>Téléphone:</strong> <span id="modalPhone"></span></div>
-                        <div><strong>Responsable:</strong> <span id="modalAssignee"></span></div>
-                        <div><strong>Statut:</strong> <span id="modalStatus"></span></div>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 class="font-bold mb-3">⚙️ Modules activés</h4>
-                    <div id="modalFeatures" class="flex flex-wrap gap-2">
-                        <!-- Features loaded dynamically -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Ajouter Feature -->
-    <div id="featureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
+    <div id="phaseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-xl font-bold mb-4">➕ Ajouter une Feature</h3>
-            <div class="space-y-3">
-                <input id="newFeatureName" type="text" placeholder="Nom de la feature *" class="w-full border rounded px-3 py-2 bg-white">
-                <input id="newFeatureIcon" type="text" placeholder="Emoji (ex: 🎯)" class="w-full border rounded px-3 py-2 bg-white">
-                <textarea id="newFeatureDesc" placeholder="Description..." class="w-full border rounded px-3 py-2 h-20 bg-white"></textarea>
-                <select id="newFeatureType" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="included">Inclus (gratuit)</option>
-                    <option value="premium">Premium (payant)</option>
-                </select>
-                <input id="newFeaturePrice" type="number" placeholder="Prix mensuel (€)" class="w-full border rounded px-3 py-2 bg-white" min="0">
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeFeatureModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
-                <button onclick="createFeature()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Créer</button>
+            <h3 class="text-xl font-bold mb-4">Nouvelle Phase</h3>
+            <input id="newPhaseName" type="text" placeholder="Nom" class="w-full border rounded px-3 py-2 mb-3">
+            <div class="flex space-x-2">
+                <button onclick="closePhaseModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="savePhase()" class="flex-1 bg-blue-600 text-white rounded py-2">Créer</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Modifier Analytics -->
-    <div id="analyticsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
+    <div id="featureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-xl font-bold mb-4">⚙️ Modifier les Métriques Analytics</h3>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-sm font-semibold mb-1">Revenus annuels (€)</label>
-                    <input id="editYearRevenue" type="number" class="w-full border rounded px-3 py-2 bg-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1">Croissance annuelle (%)</label>
-                    <input id="editYearGrowth" type="number" class="w-full border rounded px-3 py-2 bg-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1">Temps gagné clients (h/mois)</label>
-                    <input id="editTimeSaved" type="number" class="w-full border rounded px-3 py-2 bg-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1">Taux de conversion (%)</label>
-                    <input id="editConversionRate" type="number" class="w-full border rounded px-3 py-2 bg-white">
-                </div>
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeAnalyticsModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
-                <button onclick="saveAnalytics()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Enregistrer</button>
+            <h3 class="text-xl font-bold mb-4">Nouvelle Feature</h3>
+            <input id="newFeatureName" type="text" placeholder="Nom" class="w-full border rounded px-3 py-2 mb-3">
+            <div class="flex space-x-2">
+                <button onclick="closeFeatureModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="createFeature()" class="flex-1 bg-blue-600 text-white rounded py-2">Créer</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Ajouter Type de Contrat -->
-    <div id="contractModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
+    <div id="analyticsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-xl font-bold mb-4">➕ Ajouter un Type de Contrat</h3>
+            <h3 class="text-xl font-bold mb-4">Métriques</h3>
             <div class="space-y-3">
-                <input id="newContractName" type="text" placeholder="Nom du contrat *" class="w-full border rounded px-3 py-2 bg-white">
-                <input id="newContractPrice" type="number" placeholder="Prix mensuel (€) *" class="w-full border rounded px-3 py-2 bg-white">
-                <textarea id="newContractDesc" placeholder="Description..." class="w-full border rounded px-3 py-2 h-20 bg-white"></textarea>
-                <select id="newContractColor" class="w-full border rounded px-3 py-2 bg-white">
-                    <option value="blue">Bleu</option>
-                    <option value="green">Vert</option>
-                    <option value="purple">Violet</option>
-                    <option value="orange">Orange</option>
-                    <option value="red">Rouge</option>
-                    <option value="pink">Rose</option>
-                </select>
+                <input id="editYearRevenue" type="number" placeholder="Revenus annuels" class="w-full border rounded px-3 py-2">
+                <input id="editYearGrowth" type="number" placeholder="Croissance %" class="w-full border rounded px-3 py-2">
             </div>
             <div class="flex space-x-2 mt-4">
-                <button onclick="closeContractModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
-                <button onclick="createContract()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Créer</button>
+                <button onclick="closeAnalyticsModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveAnalytics()" class="flex-1 bg-blue-600 text-white rounded py-2">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="revenueModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Répartition Revenus</h3>
+            <div id="revenueBreakdownInputs" class="space-y-2 mb-3"></div>
+            <button onclick="addRevenueCategory()" class="w-full border-2 border-dashed rounded py-2 mb-3">+ Ajouter</button>
+            <div class="flex space-x-2">
+                <button onclick="closeRevenueModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveRevenueBreakdown()" class="flex-1 bg-blue-600 text-white rounded py-2">Sauvegarder</button>
             </div>
         </div>
     </div>
 
     <script>
-        // DATA STRUCTURE
-        let data = {
-            settings: {
-                signedGoal: 10,
-                mrrGoal: 5000,
-                currentMRR: 1200
-            },
-            projects: [
-                {id: 1, name: "La Bella Vita", contact: "contact@bellavita.fr", phone: "0612345678", status: "active", revenue: 400, phase: 2, progress: 65, assignee: "Marc", features: ["reservations", "menus", "messaging"]},
-                {id: 2, name: "Sushi Zen", contact: "sushi@zen.fr", phone: "0698765432", status: "demo", revenue: 350, phase: 1, progress: 20, assignee: "Julie", features: ["reservations", "menus"]},
-                {id: 3, name: "Le Gourmet", contact: "contact@legourmet.fr", phone: "0687654321", status: "active", revenue: 450, phase: 3, progress: 85, assignee: "Sophie", features: ["reservations", "menus", "messaging", "orders"]}
-            ],
-            tasks: [
-                {id: 1, projectId: 1, title: "Finaliser prompt IA", desc: "Optimiser les réponses pour les allergies", phase: 2, assignee: "Marc", status: "doing", priority: "high", deadline: "2025-12-27", goal: "Améliorer satisfaction client"},
-                {id: 2, projectId: 2, title: "Déployer site", desc: "Mise en production sur Vercel", phase: 1, assignee: "Julie", status: "todo", priority: "urgent", deadline: "2025-12-28", goal: "Lancer la démo client"},
-                {id: 3, projectId: 1, title: "Intégrer Stripe", desc: "Paiements en ligne", phase: 2, assignee: "Marc", status: "todo", priority: "medium", deadline: "2025-12-30", goal: "Générer revenus supplémentaires"},
-                {id: 4, projectId: 3, title: "Formation client", desc: "Onboarding équipe restaurant", phase: 3, assignee: "Sophie", status: "done", priority: "high", deadline: "2025-12-23", goal: "Autonomie du client"},
-                {id: 5, projectId: 2, title: "Script de vente", desc: "Rédiger pitch pour cold calling", phase: 1, assignee: "Julie", status: "doing", priority: "high", deadline: "2025-12-26", goal: "Augmenter taux de conversion"}
-            ],
-            features: [
-                {id: 1, name: "Réservations en ligne", icon: "📅", desc: "Système de réservation automatisé avec confirmation email", type: "included", price: 0},
-                {id: 2, name: "Menus digitaux", icon: "🍽️", desc: "QR Code menu dynamique mis à jour en temps réel", type: "included", price: 0},
-                {id: 3, name: "Messagerie équipe", icon: "💬", desc: "Communication interne pour le personnel", type: "included", price: 0},
-                {id: 4, name: "Commandes en ligne", icon: "🛒", desc: "Click & collect / livraison intégrée", type: "premium", price: 5},
-                {id: 5, name: "Statistiques avancées", icon: "📊", desc: "Analytics détaillées de fréquentation et revenus", type: "premium", price: 3},
-                {id: 6, name: "Fidélisation clients", icon: "🎁", desc: "Programme de points et récompenses", type: "premium", price: 2}
-            ],
-            analytics: {
-                yearRevenue: 14400,
-                yearGrowth: 32,
-                timeSaved: 540,
-                conversionRate: 30
-            },
-            contracts: [
-                {id: 1, name: "Starter", price: 350, desc: "Pour petits restaurants", color: "blue"},
-                {id: 2, name: "Standard", price: 400, desc: "Forfait classique", color: "green"},
-                {id: 3, name: "Premium", price: 450, desc: "Toutes les features", color: "purple"}
-            ],
-            notifications: [],
-            darkMode: true // Mode sombre par défaut
+        // FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOXDHOQj2cADZ9ai2uHzQ1lE8HsX3P3Hg",
+            authDomain: "restaurantos-7bf0a.firebaseapp.com",
+            databaseURL: "https://restaurantos-7bf0a-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "restaurantos-7bf0a",
+            storageBucket: "restaurantos-7bf0a.firebasestorage.app",
+            messagingSenderId: "501432201588",
+            appId: "1:501432201588:web:3720005ca099406dab3c21",
+            measurementId: "G-N1KHN4JGEM"
         };
 
-        let currentUser = "Marc";
-        let currentProjectId = null;
+        let firebaseApp, database, analytics, useFirebase = false;
+
+        function initFirebase() {
+            try {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                analytics = firebase.analytics();
+                useFirebase = true;
+                
+                database.ref('restaurantOS').on('value', (snapshot) => {
+                    const remoteData = snapshot.val();
+                    if (remoteData) {
+                        data = remoteData;
+                        refreshAllUI();
+                        updateFirebaseStatus(true);
+                    }
+                });
+                
+                database.ref('.info/connected').on('value', (snapshot) => {
+                    updateFirebaseStatus(snapshot.val());
+                });
+                
+                console.log('✅ Firebase connecté');
+            } catch (error) {
+                console.error('❌ Firebase:', error);
+                useFirebase = false;
+                document.getElementById('firebaseStatus').style.display = 'none';
+            }
+        }
+
+        function updateFirebaseStatus(connected) {
+            const el = document.getElementById('firebaseStatus');
+            el.className = 'firebase-status ' + (connected ? 'firebase-connected' : 'firebase-disconnected');
+            el.textContent = connected ? '🟢 Synchronisé' : '🔴 Déconnecté';
+        }
+
+        // DATA
+        let data = {
+            settings: { signedGoal: 5, signedCount: 3, mrrGoal: 5000, currentMRR: 1200 },
+            projects: [
+                {id: 1, name: "La Bella Vita", contact: "bella@test.fr", phone: "06123", status: "active", revenue: 400, phase: 2, progress: 65},
+                {id: 2, name: "Sushi Zen", contact: "sushi@test.fr", phone: "06456", status: "demo", revenue: 350, phase: 1, progress: 20}
+            ],
+            tasks: [
+                {id: 1, projectId: 1, title: "Prompt IA", assignee: "Stephen", status: "doing", priority: "high", goal: "Satisfaction"},
+                {id: 2, projectId: 2, title: "Déployer site", assignee: "Eva", status: "todo", priority: "urgent", goal: "Démo"}
+            ],
+            features: [
+                {id: 1, name: "Réservations", icon: "📅", desc: "Automatisé", type: "included", price: 0},
+                {id: 2, name: "Menus digitaux", icon: "🍽️", desc: "QR Code", type: "included", price: 0}
+            ],
+            phases: [
+                {id: 1, name: "Démo", duration: "7-10j", color: "blue", codeTasks: ["Structure"], strategyTasks: ["Prompts"]},
+                {id: 2, name: "Intégration", duration: "5-7j", color: "green", codeTasks: ["API"], strategyTasks: ["Tests"]}
+            ],
+            analytics: { yearRevenue: 14400, yearGrowth: 32, timeSaved: 540, conversionRate: 30, revenueBreakdown: [{name: "Abonnements", amount: 1200}] },
+            notifications: [],
+            darkMode: true
+        };
+
+        // SAVE/LOAD
+        function saveData() {
+            if (useFirebase && database) {
+                database.ref('restaurantOS').set(data).catch(e => console.error(e));
+            } else {
+                try { localStorage.setItem('restaurantOS_data', JSON.stringify(data)); } catch(e) {}
+            }
+        }
+
+        function loadData() {
+            if (useFirebase) return;
+            try {
+                const saved = localStorage.getItem('restaurantOS_data');
+                if (saved) data = {...data, ...JSON.parse(saved)};
+            } catch(e) {}
+            refreshAllUI();
+        }
+
+        function refreshAllUI() {
+            loadDashboard();
+            loadProjects();
+            loadTasks();
+            loadFeatures();
+            loadPhases();
+            loadAnalytics();
+            loadNotifications();
+            
+            document.getElementById('mrr').value = data.settings.currentMRR;
+            document.getElementById('mrrGoal').value = data.settings.mrrGoal;
+            document.getElementById('signedGoal').textContent = data.settings.signedGoal;
+            document.getElementById('signedRestaurants').textContent = data.settings.signedCount;
+        }
 
         // DARK MODE
         function toggleDarkMode() {
@@ -892,158 +497,77 @@
             saveData();
         }
 
-        function loadDarkMode() {
-            // Mode sombre activé par défaut
-            document.body.classList.add('dark');
-            document.getElementById('darkModeIcon').textContent = '☀️';
-        }
-
-        // EDITABLE GOALS
-        function changeGoalValue(elementId, delta) {
-            const el = document.getElementById(elementId);
-            let value = parseInt(el.textContent) || 0;
-            value = Math.max(0, value + delta);
-            el.textContent = value;
-            data.settings.signedGoal = value;
+        // EDITABLE
+        function changeSignedCount(delta) {
+            data.settings.signedCount = Math.max(0, (data.settings.signedCount || 0) + delta);
+            document.getElementById('signedRestaurants').textContent = data.settings.signedCount;
             saveData();
         }
-
-        // Rendre les champs éditables au clavier
-        document.addEventListener('DOMContentLoaded', () => {
-            document.addEventListener('input', (e) => {
-                if (e.target.id === 'signedGoal') {
-                    data.settings.signedGoal = parseInt(e.target.textContent) || 10;
-                    saveData();
-                } else if (e.target.id === 'mrrGoal') {
-                    data.settings.mrrGoal = parseInt(e.target.value) || 5000;
-                    saveData();
-                }
-            });
-        });
 
         function updateMRR(value) {
             data.settings.currentMRR = parseInt(value) || 0;
             saveData();
         }
 
-        // INIT
-        function init() {
-            loadDashboard();
-            loadProjects();
-            loadTasks();
-            loadNotifications();
-            loadFeatures();
-            loadAnalytics();
-            loadDarkMode();
-            document.getElementById('userName').textContent = currentUser;
-            
-            // Set MRR values
-            document.getElementById('mrr').value = data.settings.currentMRR;
-            document.getElementById('mrrGoal').value = data.settings.mrrGoal;
-            document.getElementById('signedGoal').textContent = data.settings.signedGoal;
-        }
-
         // NAVIGATION
-        function showPage(pageName) {
+        function showPage(name) {
             document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-            document.getElementById(pageName).classList.remove('hidden');
-            
-            if (pageName === 'projects') loadProjects();
-            if (pageName === 'tasks') loadTasks();
-            if (pageName === 'features') loadFeatures();
-            if (pageName === 'analytics') loadAnalytics();
-        }
-
-        // NOTIFICATIONS
-        function loadNotifications() {
-            const list = document.getElementById('notificationsList');
-            if (data.notifications.length === 0) {
-                list.innerHTML = '<div class="p-3 text-center text-gray-500 text-sm">Aucune notification</div>';
-                document.getElementById('notifBadge').classList.add('hidden');
-                return;
-            }
-            
-            list.innerHTML = data.notifications.map(n => `
-                <div class="p-3 hover:bg-gray-50">
-                    <div class="flex items-start">
-                        <span class="mr-2">${n.type === 'warning' ? '⚠️' : n.type === 'success' ? '✅' : 'ℹ️'}</span>
-                        <div class="flex-1">
-                            <div class="text-sm">${n.message}</div>
-                            <div class="text-xs text-gray-500 mt-1">${n.time}</div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-            
-            document.getElementById('notifBadge').classList.remove('hidden');
-            document.getElementById('notifBadge').textContent = data.notifications.length;
-        }
-
-        function toggleNotifications() {
-            const panel = document.getElementById('notificationsPanel');
-            panel.classList.toggle('hidden');
+            document.getElementById(name).classList.remove('hidden');
+            if (name === 'projects') loadProjects();
+            if (name === 'tasks') loadTasks();
+            if (name === 'features') loadFeatures();
+            if (name === 'phases') loadPhases();
+            if (name === 'analytics') loadAnalytics();
         }
 
         // DASHBOARD
         function loadDashboard() {
             const activeProjects = document.getElementById('activeProjects');
             activeProjects.innerHTML = data.projects.filter(p => p.status === 'active' || p.status === 'demo').map(p => `
-                <div class="p-4 hover:bg-gray-50 cursor-pointer" onclick="viewProjectDetail(${p.id})">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 class="font-semibold">${getProjectIcon(p.name)} ${p.name}</h3>
-                            <span class="text-xs text-gray-500">Phase ${p.phase} | ${p.progress}%</span>
-                        </div>
-                        <span class="px-2 py-1 text-xs rounded ${getStatusColor(p.status)}">${getStatusText(p.status)}</span>
+                <div class="p-4 hover:bg-gray-50 cursor-pointer">
+                    <div class="flex justify-between mb-2">
+                        <h3 class="font-semibold">${p.name}</h3>
+                        <span class="text-xs px-2 py-1 rounded ${p.status === 'active' ? 'bg-green-200' : 'bg-yellow-200'}">${p.status}</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-                        <div class="bg-blue-600 h-2 rounded-full phase-progress" style="width: ${p.progress}%"></div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width:${p.progress}%"></div>
                     </div>
-                    <div class="flex justify-between text-xs text-gray-600">
-                        <span>👤 ${p.assignee}</span>
-                        <span>💰 ${p.revenue}€/mois</span>
-                    </div>
+                    <div class="text-xs text-gray-600 mt-2">💰 ${p.revenue}€/mois</div>
                 </div>
             `).join('');
 
             const urgentTasks = document.getElementById('urgentTasks');
             const urgent = data.tasks.filter(t => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'done').slice(0, 5);
-            urgentTasks.innerHTML = urgent.length > 0 ? urgent.map(t => {
+            urgentTasks.innerHTML = urgent.length ? urgent.map(t => {
                 const project = data.projects.find(p => p.id === t.projectId);
                 return `
-                    <div class="border-l-4 ${getPriorityColor(t.priority)} pl-3 py-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100" onclick="editTask(${t.id})">
+                    <div class="border-l-4 ${t.priority === 'urgent' ? 'border-red-500' : 'border-orange-400'} pl-3 py-2 bg-gray-50 rounded">
                         <div class="font-medium text-sm">${t.title}</div>
-                        <div class="text-xs text-gray-600 mt-1">${project.name} • ${t.assignee}</div>
+                        <div class="text-xs text-gray-600">${project?.name || 'N/A'} • ${t.assignee}</div>
                     </div>
                 `;
             }).join('') : '<div class="text-gray-500 text-sm">Aucune tâche prioritaire</div>';
 
-            // Update KPIs
-            document.getElementById('signedRestaurants').textContent = data.projects.filter(p => p.status === 'active').length;
+            document.getElementById('signedRestaurants').textContent = data.settings.signedCount;
+            document.getElementById('signedGoal').textContent = data.settings.signedGoal;
             
             const completed = data.tasks.filter(t => t.status === 'done').length;
             const total = data.tasks.length;
             document.getElementById('completedTasks').textContent = completed;
             document.getElementById('totalTasks').textContent = total;
-            document.getElementById('completionPercent').textContent = total > 0 ? Math.round((completed / total) * 100) : 0;
-            
-            const ongoing = data.tasks.filter(t => t.status === 'doing').length;
-            document.getElementById('ongoingTasks').textContent = ongoing;
+            document.getElementById('completionPercent').textContent = total ? Math.round((completed/total)*100) : 0;
+            document.getElementById('ongoingTasks').textContent = data.tasks.filter(t => t.status === 'doing').length;
         }
 
         // PROJECTS
         function loadProjects() {
-            const projectsList = document.getElementById('projectsList');
-            projectsList.innerHTML = data.projects.map(p => `
-                <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition cursor-pointer" onclick="viewProjectDetail(${p.id})">
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-bold text-lg">${getProjectIcon(p.name)} ${p.name}</h3>
-                        <span class="px-2 py-1 text-xs rounded ${getStatusColor(p.status)}">${getStatusText(p.status)}</span>
-                    </div>
+            const list = document.getElementById('projectsList');
+            list.innerHTML = data.projects.map(p => `
+                <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition">
+                    <h3 class="font-bold text-lg mb-2">${p.name}</h3>
                     <div class="text-sm text-gray-600 space-y-1 mb-3">
                         <div>📧 ${p.contact}</div>
                         <div>📱 ${p.phone}</div>
-                        <div>👤 Responsable: ${p.assignee}</div>
                     </div>
                     <div class="border-t pt-3">
                         <div class="flex justify-between text-sm mb-2">
@@ -1051,7 +575,7 @@
                             <span class="font-semibold">${p.progress}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-600 h-2 rounded-full" style="width: ${p.progress}%"></div>
+                            <div class="bg-blue-600 h-2 rounded-full" style="width:${p.progress}%"></div>
                         </div>
                         <div class="mt-2 text-right">
                             <span class="text-green-600 font-bold">${p.revenue}€/mois</span>
@@ -1060,84 +584,34 @@
                 </div>
             `).join('');
 
-            const taskProjectSelect = document.getElementById('newTaskProject');
-            taskProjectSelect.innerHTML = '<option value="">Sélectionner un projet</option>' + 
+            document.getElementById('newTaskProject').innerHTML = '<option value="">Projet</option>' + 
                 data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
         }
 
-        function viewProjectDetail(id) {
-            currentProjectId = id;
-            const project = data.projects.find(p => p.id === id);
-            const projectTasks = data.tasks.filter(t => t.projectId === id);
-            
-            document.getElementById('modalProjectName').textContent = getProjectIcon(project.name) + ' ' + project.name;
-            document.getElementById('modalPhase').textContent = `${project.phase}/4`;
-            document.getElementById('modalProgress').textContent = `${project.progress}%`;
-            document.getElementById('modalRevenue').textContent = `${project.revenue}€`;
-            document.getElementById('modalEmail').textContent = project.contact;
-            document.getElementById('modalPhone').textContent = project.phone;
-            document.getElementById('modalAssignee').textContent = project.assignee;
-            document.getElementById('modalStatus').textContent = getStatusText(project.status);
-            
-            document.getElementById('modalTasks').innerHTML = projectTasks.length > 0 ? projectTasks.map(t => `
-                <div class="flex items-center justify-between p-2 bg-gray-50 rounded border-l-4 ${getPriorityColor(t.priority)}">
-                    <div class="flex-1">
-                        <div class="font-medium text-sm">${t.title}</div>
-                        <div class="text-xs text-gray-500">${t.assignee}</div>
-                    </div>
-                    <span class="px-2 py-1 text-xs rounded ${getTaskStatusColor(t.status)}">${getTaskStatusText(t.status)}</span>
-                </div>
-            `).join('') : '<div class="text-gray-500 text-sm">Aucune tâche pour ce projet</div>';
-            
-            const featureObjs = data.features.filter(f => project.features.includes(f.id));
-            document.getElementById('modalFeatures').innerHTML = featureObjs.map(f => 
-                `<span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${f.icon} ${f.name}</span>`
-            ).join('');
-            
-            document.getElementById('projectDetailModal').classList.remove('hidden');
-        }
+        function openProjectModal() { document.getElementById('projectModal').classList.remove('hidden'); }
+        function closeProjectModal() { document.getElementById('projectModal').classList.add('hidden'); }
 
-        function closeProjectDetailModal() {
-            document.getElementById('projectDetailModal').classList.add('hidden');
-            currentProjectId = null;
-        }
+        function saveProject() {
+            const name = document.getElementById('newProjectName').value;
+            const contact = document.getElementById('newProjectContact').value;
+            const phone = document.getElementById('newProjectPhone').value;
+            const revenue = parseInt(document.getElementById('newProjectRevenue').value) || 0;
 
-        function editProjectFromDetail() {
-            const project = data.projects.find(p => p.id === currentProjectId);
-            if (!project) return;
-            
-            document.getElementById('projectModalTitle').textContent = '✏️ Modifier le Restaurant';
-            document.getElementById('editProjectId').value = project.id;
-            document.getElementById('newProjectName').value = project.name;
-            document.getElementById('newProjectContact').value = project.contact;
-            document.getElementById('newProjectPhone').value = project.phone;
-            document.getElementById('newProjectStatus').value = project.status;
-            document.getElementById('newProjectRevenue').value = project.revenue;
-            document.getElementById('newProjectAssignee').value = project.assignee;
-            document.getElementById('newProjectPhase').value = project.phase;
-            document.getElementById('newProjectProgress').value = project.progress;
-            
-            loadProjectFeaturesCheckboxes(project.features);
-            
-            closeProjectDetailModal();
-            document.getElementById('projectModal').classList.remove('hidden');
-        }
+            if (!name || !contact) return alert('⚠️ Nom et email obligatoires');
 
-        function deleteProjectConfirm() {
-            if (!currentProjectId) return;
-            const project = data.projects.find(p => p.id === currentProjectId);
+            const newId = Math.max(...data.projects.map(p => p.id), 0) + 1;
+            data.projects.push({id: newId, name, contact, phone, revenue, status: 'prospect', phase: 1, progress: 0});
+
+            closeProjectModal();
+            loadProjects();
+            loadDashboard();
+            saveData();
+            addNotification('success', `Restaurant "${name}" créé`, 'Maintenant');
             
-            if (confirm(`Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ?\n\nCette action est irréversible et supprimera aussi toutes les tâches associées.`)) {
-                data.projects = data.projects.filter(p => p.id !== currentProjectId);
-                data.tasks = data.tasks.filter(t => t.projectId !== currentProjectId);
-                
-                closeProjectDetailModal();
-                loadProjects();
-                loadDashboard();
-                loadTasks();
-                saveData();
-                addNotification('success', `Projet "${project.name}" supprimé`, 'Maintenant');
-            }
+            document.getElementById('newProjectName').value = '';
+            document.getElementById('newProjectContact').value = '';
+            document.getElementById('newProjectPhone').value = '';
+            document.getElementById('newProjectRevenue').value = '';
         }
 
         // TASKS
@@ -1153,370 +627,29 @@
                 col.innerHTML = columns[status].map(t => {
                     const project = data.projects.find(p => p.id === t.projectId);
                     return `
-                        <div class="task-card bg-white p-3 rounded shadow-sm border-l-4 ${getPriorityColor(t.priority)} cursor-pointer" onclick="editTask(${t.id})">
+                        <div class="bg-white p-3 rounded shadow-sm border-l-4 ${t.priority === 'urgent' ? 'border-red-500' : t.priority === 'high' ? 'border-orange-400' : 'border-blue-400'} cursor-pointer hover:shadow">
                             <div class="font-semibold text-sm mb-1">${t.title}</div>
-                            <div class="text-xs text-gray-600 mb-2">${project ? project.name : 'Sans projet'}</div>
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="px-2 py-0.5 bg-gray-100 rounded">${t.assignee}</span>
-                            </div>
-                            <div class="mt-2 text-xs text-gray-500">🎯 ${t.goal}</div>
+                            <div class="text-xs text-gray-600 mb-2">${project?.name || 'N/A'}</div>
+                            <div class="text-xs"><span class="px-2 py-0.5 bg-gray-100 rounded">${t.assignee}</span></div>
                         </div>
                     `;
                 }).join('');
             });
         }
 
-        function filterTasks(status) {
-            if (status === 'all') {
-                document.querySelectorAll('#tasksBoard > div').forEach(col => col.style.display = 'block');
-            } else {
-                Object.keys({todo: 1, doing: 1, blocked: 1, done: 1}).forEach(s => {
-                    const col = document.getElementById(s + 'Column').parentElement;
-                    col.style.display = s === status ? 'block' : 'none';
-                });
-            }
-        }
-
-        function editTask(id) {
-            const task = data.tasks.find(t => t.id === id);
-            const statuses = ['À faire', 'En cours', 'Bloquée', 'Terminée'];
-            const newStatus = prompt(`Modifier le statut de "${task.title}":\n\n1. ${statuses[0]}\n2. ${statuses[1]}\n3. ${statuses[2]}\n4. ${statuses[3]}\n\nEntrez le numéro:`);
-            const statusMap = {1: 'todo', 2: 'doing', 3: 'blocked', 4: 'done'};
-            if (statusMap[newStatus]) {
-                task.status = statusMap[newStatus];
-                loadTasks();
-                loadDashboard();
-                saveData();
-                addNotification('success', `Tâche "${task.title}" mise à jour`, 'Maintenant');
-            }
-        }
-
-        // FEATURES
-        function loadFeatures() {
-            const featuresList = document.getElementById('featuresList');
-            featuresList.innerHTML = data.features.map(f => `
-                <div class="bg-white rounded-lg shadow p-4 border-l-4 ${f.type === 'included' ? 'border-green-500' : 'border-yellow-500'}">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-lg">${f.icon} ${f.name}</h3>
-                        <button onclick="deleteFeature(${f.id})" class="text-red-500 hover:text-red-700 text-sm">🗑️</button>
-                    </div>
-                    <p class="text-sm text-gray-600 mb-3">${f.desc}</p>
-                    <span class="text-xs ${f.type === 'included' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'} px-2 py-1 rounded">
-                        ${f.type === 'included' ? 'Inclus' : `+${f.price}€/mois`}
-                    </span>
-                </div>
-            `).join('');
-        }
-
-        function loadProjectFeaturesCheckboxes(selectedFeatures = []) {
-            const container = document.getElementById('projectFeaturesCheckboxes');
-            container.innerHTML = data.features.map(f => `
-                <label class="flex items-center space-x-2 cursor-pointer hover:bg-white p-1 rounded">
-                    <input type="checkbox" value="${f.id}" ${selectedFeatures.includes(f.id) ? 'checked' : ''} class="feature-checkbox">
-                    <span class="text-sm">${f.icon} ${f.name}</span>
-                </label>
-            `).join('');
-        }
-
-        function openFeatureModal() {
-            document.getElementById('featureModal').classList.remove('hidden');
-        }
-
-        function closeFeatureModal() {
-            document.getElementById('featureModal').classList.add('hidden');
-        }
-
-        function createFeature() {
-            const name = document.getElementById('newFeatureName').value;
-            const icon = document.getElementById('newFeatureIcon').value;
-            const desc = document.getElementById('newFeatureDesc').value;
-            const type = document.getElementById('newFeatureType').value;
-            const price = parseInt(document.getElementById('newFeaturePrice').value) || 0;
-
-            if (!name) {
-                alert('⚠️ Nom obligatoire');
-                return;
-            }
-
-            const newId = Math.max(...data.features.map(f => f.id), 0) + 1;
-            data.features.push({ id: newId, name, icon: icon || '⚙️', desc, type, price });
-
-            closeFeatureModal();
-            loadFeatures();
-            saveData();
-            addNotification('success', `Feature "${name}" créée`, 'Maintenant');
-            
-            document.getElementById('newFeatureName').value = '';
-            document.getElementById('newFeatureIcon').value = '';
-            document.getElementById('newFeatureDesc').value = '';
-            document.getElementById('newFeaturePrice').value = '';
-        }
-
-        function deleteFeature(id) {
-            const feature = data.features.find(f => f.id === id);
-            if (confirm(`Supprimer la feature "${feature.name}" ?`)) {
-                data.features = data.features.filter(f => f.id !== id);
-                loadFeatures();
-                saveData();
-                addNotification('success', `Feature "${feature.name}" supprimée`, 'Maintenant');
-            }
-        }
-
-        // ANALYTICS
-        function loadAnalytics() {
-            document.getElementById('analyticsYearRevenue').textContent = data.analytics.yearRevenue;
-            document.getElementById('analyticsYearGrowth').textContent = data.analytics.yearGrowth;
-            document.getElementById('analyticsTimeSaved').textContent = data.analytics.timeSaved;
-            document.getElementById('analyticsActiveClients').textContent = data.projects.filter(p => p.status === 'active').length;
-            document.getElementById('analyticsConversionRate').textContent = data.analytics.conversionRate;
-
-            // Contract sizes
-            const contractSizeList = document.getElementById('contractSizeList');
-            contractSizeList.innerHTML = data.contracts.map(c => `
-                <div class="flex items-center justify-between p-3 border rounded hover:bg-gray-50">
-                    <div class="flex-1">
-                        <div class="font-semibold">${c.name}</div>
-                        <div class="text-xs text-gray-500">${c.desc}</div>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <span class="font-bold text-lg text-${c.color}-600">${c.price}€/mois</span>
-                        <button onclick="deleteContract(${c.id})" class="text-red-500 hover:text-red-700">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
-
-            // Revenue breakdown
-            const revenues = data.projects.map(p => {
-                const contract = data.contracts.find(c => c.price === p.revenue);
-                return { name: contract ? contract.name : 'Personnalisé', revenue: p.revenue };
-            });
-
-            const breakdown = {};
-            revenues.forEach(r => {
-                breakdown[r.name] = (breakdown[r.name] || 0) + r.revenue;
-            });
-
-            const revenueByContractType = document.getElementById('revenueByContractType');
-            revenueByContractType.innerHTML = Object.entries(breakdown).map(([name, total]) => `
-                <div class="flex justify-between items-center text-sm">
-                    <span>${name}:</span>
-                    <span class="font-bold">${total}€/mois</span>
-                </div>
-            `).join('');
-
-            // Stats
-            const activeRevenues = data.projects.filter(p => p.status === 'active').map(p => p.revenue);
-            if (activeRevenues.length > 0) {
-                const avg = Math.round(activeRevenues.reduce((a, b) => a + b, 0) / activeRevenues.length);
-                const max = Math.max(...activeRevenues);
-                const min = Math.min(...activeRevenues);
-                document.getElementById('avgContract').textContent = avg;
-                document.getElementById('maxContract').textContent = max;
-                document.getElementById('minContract').textContent = min;
-            }
-        }
-
-        function openAnalyticsModal() {
-            document.getElementById('editYearRevenue').value = data.analytics.yearRevenue;
-            document.getElementById('editYearGrowth').value = data.analytics.yearGrowth;
-            document.getElementById('editTimeSaved').value = data.analytics.timeSaved;
-            document.getElementById('editConversionRate').value = data.analytics.conversionRate;
-            document.getElementById('analyticsModal').classList.remove('hidden');
-        }
-
-        function closeAnalyticsModal() {
-            document.getElementById('analyticsModal').classList.add('hidden');
-        }
-
-        function saveAnalytics() {
-            data.analytics.yearRevenue = parseInt(document.getElementById('editYearRevenue').value) || 0;
-            data.analytics.yearGrowth = parseInt(document.getElementById('editYearGrowth').value) || 0;
-            data.analytics.timeSaved = parseInt(document.getElementById('editTimeSaved').value) || 0;
-            data.analytics.conversionRate = parseInt(document.getElementById('editConversionRate').value) || 0;
-            
-            closeAnalyticsModal();
-            loadAnalytics();
-            saveData();
-            addNotification('success', 'Métriques analytics mises à jour', 'Maintenant');
-        }
-
-        function openContractModal() {
-            document.getElementById('contractModal').classList.remove('hidden');
-        }
-
-        function closeContractModal() {
-            document.getElementById('contractModal').classList.add('hidden');
-        }
-
-        function createContract() {
-            const name = document.getElementById('newContractName').value;
-            const price = parseInt(document.getElementById('newContractPrice').value);
-            const desc = document.getElementById('newContractDesc').value;
-            const color = document.getElementById('newContractColor').value;
-
-            if (!name || !price) {
-                alert('⚠️ Nom et prix obligatoires');
-                return;
-            }
-
-            const newId = Math.max(...data.contracts.map(c => c.id), 0) + 1;
-            data.contracts.push({ id: newId, name, price, desc, color });
-
-            closeContractModal();
-            loadAnalytics();
-            saveData();
-            addNotification('success', `Contrat "${name}" créé`, 'Maintenant');
-            
-            document.getElementById('newContractName').value = '';
-            document.getElementById('newContractPrice').value = '';
-            document.getElementById('newContractDesc').value = '';
-        }
-
-        function deleteContract(id) {
-            const contract = data.contracts.find(c => c.id === id);
-            if (confirm(`Supprimer le contrat "${contract.name}" ?`)) {
-                data.contracts = data.contracts.filter(c => c.id !== id);
-                loadAnalytics();
-                saveData();
-                addNotification('success', `Contrat "${contract.name}" supprimé`, 'Maintenant');
-            }
-        }
-
-        // AI ASSISTANT
-        function openAI() {
-            showPage('ai');
-        }
-
-        function askAI(type) {
-            const responses = {
-                priorities: "📋 Voici tes priorités:\n\n" + data.tasks.filter(t => t.status !== 'done').slice(0, 3).map((t, i) => `${i+1}. ${t.title} (${t.priority})`).join('\n'),
-                script: "📞 Script de vente généré avec succès!",
-                objection: "🎭 Voici comment gérer l'objection 'trop cher'...",
-                email: "📧 Email de prospection prêt!"
-            };
-            
-            addAIMessage('user', type);
-            setTimeout(() => addAIMessage('ai', responses[type]), 500);
-        }
-
-        function sendAIMessage() {
-            const input = document.getElementById('aiInput');
-            const msg = input.value.trim();
-            if (!msg) return;
-            
-            addAIMessage('user', msg);
-            input.value = '';
-            
-            setTimeout(() => {
-                addAIMessage('ai', 'Traitement en cours...');
-            }, 500);
-        }
-
-        function addAIMessage(type, text) {
-            const chat = document.getElementById('chatMessages');
-            const div = document.createElement('div');
-            div.className = type === 'user' ? 'bg-gray-100 p-3 rounded-lg text-right' : 'bg-blue-50 p-3 rounded-lg';
-            div.innerHTML = `<strong>${type === 'user' ? '👤' : '🤖'}</strong> ${text}`;
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-        }
-
-        // MODALS
-        function openProjectModal() {
-            document.getElementById('projectModalTitle').textContent = '🍽️ Nouveau Restaurant';
-            document.getElementById('editProjectId').value = '';
-            document.getElementById('newProjectName').value = '';
-            document.getElementById('newProjectContact').value = '';
-            document.getElementById('newProjectPhone').value = '';
-            document.getElementById('newProjectStatus').value = 'prospect';
-            document.getElementById('newProjectRevenue').value = '';
-            document.getElementById('newProjectAssignee').value = 'Marc';
-            document.getElementById('newProjectPhase').value = '1';
-            document.getElementById('newProjectProgress').value = '0';
-            loadProjectFeaturesCheckboxes([]);
-            document.getElementById('projectModal').classList.remove('hidden');
-        }
-
-        function closeProjectModal() {
-            document.getElementById('projectModal').classList.add('hidden');
-        }
-
-        function saveProject() {
-            const editId = document.getElementById('editProjectId').value;
-            const name = document.getElementById('newProjectName').value;
-            const contact = document.getElementById('newProjectContact').value;
-            const phone = document.getElementById('newProjectPhone').value;
-            const status = document.getElementById('newProjectStatus').value;
-            const revenue = parseInt(document.getElementById('newProjectRevenue').value) || 0;
-            const assignee = document.getElementById('newProjectAssignee').value;
-            const phase = parseInt(document.getElementById('newProjectPhase').value);
-            const progress = parseInt(document.getElementById('newProjectProgress').value) || 0;
-            
-            const selectedFeatures = Array.from(document.querySelectorAll('.feature-checkbox:checked')).map(cb => parseInt(cb.value));
-
-            if (!name || !contact) {
-                alert('⚠️ Nom et email obligatoires');
-                return;
-            }
-
-            if (editId) {
-                const project = data.projects.find(p => p.id === parseInt(editId));
-                if (project) {
-                    project.name = name;
-                    project.contact = contact;
-                    project.phone = phone;
-                    project.status = status;
-                    project.revenue = revenue;
-                    project.assignee = assignee;
-                    project.phase = phase;
-                    project.progress = progress;
-                    project.features = selectedFeatures;
-                    addNotification('success', `Restaurant "${name}" modifié`, 'Maintenant');
-                }
-            } else {
-                const newId = Math.max(...data.projects.map(p => p.id), 0) + 1;
-                data.projects.push({
-                    id: newId, name, contact, phone, status, revenue, phase, progress, assignee,
-                    features: selectedFeatures
-                });
-                addNotification('success', `Restaurant "${name}" créé`, 'Maintenant');
-            }
-
-            closeProjectModal();
-            loadProjects();
-            loadDashboard();
-            loadAnalytics();
-            saveData();
-        }
-
-        function openTaskModal() {
-            document.getElementById('taskModal').classList.remove('hidden');
-        }
-
-        function closeTaskModal() {
-            document.getElementById('taskModal').classList.add('hidden');
-        }
+        function openTaskModal() { document.getElementById('taskModal').classList.remove('hidden'); }
+        function closeTaskModal() { document.getElementById('taskModal').classList.add('hidden'); }
 
         function createTask() {
             const title = document.getElementById('newTaskTitle').value;
-            const desc = document.getElementById('newTaskDesc').value;
             const projectId = parseInt(document.getElementById('newTaskProject').value);
-            const phase = parseInt(document.getElementById('newTaskPhase').value);
             const assignee = document.getElementById('newTaskAssignee').value;
             const priority = document.getElementById('newTaskPriority').value;
-            const deadline = document.getElementById('newTaskDeadline').value;
-            const goal = document.getElementById('newTaskGoal').value;
 
-            if (!title || !projectId || !deadline) {
-                alert('⚠️ Titre, projet et deadline obligatoires');
-                return;
-            }
+            if (!title || !projectId) return alert('⚠️ Titre et projet obligatoires');
 
             const newId = Math.max(...data.tasks.map(t => t.id), 0) + 1;
-            data.tasks.push({
-                id: newId, projectId, title, desc, phase, assignee,
-                status: 'todo', priority, deadline, goal
-            });
+            data.tasks.push({id: newId, projectId, title, assignee, priority, status: 'todo', goal: 'Objectif'});
 
             closeTaskModal();
             loadTasks();
@@ -1525,90 +658,238 @@
             addNotification('success', `Tâche "${title}" créée`, 'Maintenant');
             
             document.getElementById('newTaskTitle').value = '';
-            document.getElementById('newTaskDesc').value = '';
-            document.getElementById('newTaskDeadline').value = '';
-            document.getElementById('newTaskGoal').value = '';
         }
 
-        // UTILITIES
-        function getProjectIcon(name) {
-            if (name.toLowerCase().includes('bella')) return '🍕';
-            if (name.toLowerCase().includes('sushi')) return '🍣';
-            if (name.toLowerCase().includes('gourmet')) return '🍷';
-            return '🍽️';
+        // FEATURES
+        function loadFeatures() {
+            const list = document.getElementById('featuresList');
+            if (!list) return;
+            list.innerHTML = data.features.map(f => `
+                <div class="bg-white rounded-lg shadow p-4 border-l-4 ${f.type === 'included' ? 'border-green-500' : 'border-yellow-500'}">
+                    <h3 class="font-bold text-lg">${f.icon} ${f.name}</h3>
+                    <p class="text-sm text-gray-600 mb-3">${f.desc}</p>
+                    <span class="text-xs px-2 py-1 rounded ${f.type === 'included' ? 'bg-green-100' : 'bg-yellow-100'}">
+                        ${f.type === 'included' ? 'Inclus' : `+${f.price}€/mois`}
+                    </span>
+                </div>
+            `).join('');
         }
 
-        function getStatusColor(status) {
-            const colors = {
-                prospect: 'bg-gray-200 text-gray-700',
-                demo: 'bg-yellow-200 text-yellow-800',
-                active: 'bg-green-200 text-green-800',
-                churned: 'bg-red-200 text-red-800'
-            };
-            return colors[status] || 'bg-gray-200';
+        function openFeatureModal() { document.getElementById('featureModal').classList.remove('hidden'); }
+        function closeFeatureModal() { document.getElementById('featureModal').classList.add('hidden'); }
+
+        function createFeature() {
+            const name = document.getElementById('newFeatureName').value;
+            if (!name) return alert('⚠️ Nom obligatoire');
+
+            const newId = Math.max(...data.features.map(f => f.id), 0) + 1;
+            data.features.push({id: newId, name, icon: '⚙️', desc: 'Nouvelle feature', type: 'included', price: 0});
+
+            closeFeatureModal();
+            loadFeatures();
+            saveData();
+            addNotification('success', `Feature "${name}" créée`, 'Maintenant');
+            document.getElementById('newFeatureName').value = '';
         }
 
-        function getStatusText(status) {
-            const texts = { prospect: 'Prospect', demo: 'Démo', active: 'Actif', churned: 'Inactif' };
-            return texts[status] || status;
+        // PHASES
+        function loadPhases() {
+            const list = document.getElementById('phasesList');
+            if (!list) return;
+            list.innerHTML = data.phases.map(p => `
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b bg-${p.color}-50">
+                        <h3 class="text-lg font-bold">${p.name}</h3>
+                        <span class="text-sm text-gray-600">${p.duration}</span>
+                    </div>
+                    <div class="p-4">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="font-semibold mb-2">💻 CODE</h4>
+                                <ul class="text-sm space-y-1">
+                                    ${p.codeTasks.map(t => `<li>• ${t}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-2">🧠 STRATÉGIE</h4>
+                                <ul class="text-sm space-y-1">
+                                    ${p.strategyTasks.map(t => `<li>• ${t}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function getTaskStatusColor(status) {
-            const colors = {
-                todo: 'bg-gray-200 text-gray-700',
-                doing: 'bg-blue-200 text-blue-800',
-                blocked: 'bg-red-200 text-red-800',
-                done: 'bg-green-200 text-green-800'
-            };
-            return colors[status] || 'bg-gray-200';
+        function openPhaseModal() { document.getElementById('phaseModal').classList.remove('hidden'); }
+        function closePhaseModal() { document.getElementById('phaseModal').classList.add('hidden'); }
+
+        function savePhase() {
+            const name = document.getElementById('newPhaseName').value;
+            if (!name) return alert('⚠️ Nom obligatoire');
+
+            const newId = Math.max(...data.phases.map(p => p.id), 0) + 1;
+            data.phases.push({id: newId, name, duration: '5j', color: 'blue', codeTasks: ['Tâche'], strategyTasks: ['Tâche']});
+
+            closePhaseModal();
+            loadPhases();
+            saveData();
+            addNotification('success', `Phase "${name}" créée`, 'Maintenant');
+            document.getElementById('newPhaseName').value = '';
         }
 
-        function getTaskStatusText(status) {
-            const texts = { todo: 'À faire', doing: 'En cours', blocked: 'Bloquée', done: 'Terminée' };
-            return texts[status] || status;
+        // ANALYTICS
+        function loadAnalytics() {
+            document.getElementById('analyticsYearRevenue').textContent = data.analytics.yearRevenue;
+            document.getElementById('analyticsYearGrowth').textContent = data.analytics.yearGrowth;
+            document.getElementById('analyticsTimeSaved').textContent = data.analytics.timeSaved;
+            document.getElementById('analyticsConversionRate').textContent = data.analytics.conversionRate;
+
+            const list = document.getElementById('revenueBreakdownList');
+            if (!list) return;
+            list.innerHTML = data.analytics.revenueBreakdown.map((item, i) => `
+                <div class="flex justify-between items-center p-3 border rounded">
+                    <div class="font-semibold">${item.name}</div>
+                    <div class="flex items-center space-x-3">
+                        <span class="font-bold text-green-600">${item.amount}€</span>
+                        <button onclick="deleteRevenueCategory(${i})" class="text-red-500">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function getPriorityColor(priority) {
-            const colors = { low: 'border-gray-300', medium: 'border-blue-400', high: 'border-orange-400', urgent: 'border-red-500' };
-            return colors[priority] || 'border-gray-300';
+        function openAnalyticsModal() {
+            document.getElementById('editYearRevenue').value = data.analytics.yearRevenue;
+            document.getElementById('editYearGrowth').value = data.analytics.yearGrowth;
+            document.getElementById('analyticsModal').classList.remove('hidden');
+        }
+        function closeAnalyticsModal() { document.getElementById('analyticsModal').classList.add('hidden'); }
+
+        function saveAnalytics() {
+            data.analytics.yearRevenue = parseInt(document.getElementById('editYearRevenue').value) || 0;
+            data.analytics.yearGrowth = parseInt(document.getElementById('editYearGrowth').value) || 0;
+            closeAnalyticsModal();
+            loadAnalytics();
+            saveData();
+            addNotification('success', 'Métriques mises à jour', 'Maintenant');
+        }
+
+        function openRevenueModal() {
+            const container = document.getElementById('revenueBreakdownInputs');
+            container.innerHTML = data.analytics.revenueBreakdown.map((item, i) => `
+                <div class="flex space-x-2">
+                    <input type="text" value="${item.name}" class="flex-1 border rounded px-3 py-2 revenue-name">
+                    <input type="number" value="${item.amount}" class="w-32 border rounded px-3 py-2 revenue-amount">
+                </div>
+            `).join('');
+            document.getElementById('revenueModal').classList.remove('hidden');
+        }
+        function closeRevenueModal() { document.getElementById('revenueModal').classList.add('hidden'); }
+
+        function addRevenueCategory() {
+            const container = document.getElementById('revenueBreakdownInputs');
+            const div = document.createElement('div');
+            div.className = 'flex space-x-2';
+            div.innerHTML = `
+                <input type="text" placeholder="Nom" class="flex-1 border rounded px-3 py-2 revenue-name">
+                <input type="number" placeholder="Montant" class="w-32 border rounded px-3 py-2 revenue-amount">
+            `;
+            container.appendChild(div);
+        }
+
+        function saveRevenueBreakdown() {
+            const names = document.querySelectorAll('.revenue-name');
+            const amounts = document.querySelectorAll('.revenue-amount');
+            
+            data.analytics.revenueBreakdown = Array.from(names).map((n, i) => ({
+                name: n.value || 'Sans nom',
+                amount: parseInt(amounts[i].value) || 0
+            })).filter(item => item.amount > 0);
+            
+            closeRevenueModal();
+            loadAnalytics();
+            saveData();
+            addNotification('success', 'Répartition mise à jour', 'Maintenant');
+        }
+
+        function deleteRevenueCategory(index) {
+            if (confirm('Supprimer ?')) {
+                data.analytics.revenueBreakdown.splice(index, 1);
+                loadAnalytics();
+                saveData();
+            }
+        }
+
+        // AI
+        function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            
+            const chat = document.getElementById('chatMessages');
+            chat.innerHTML += `<div class="bg-gray-100 p-3 rounded-lg text-right mt-3"><strong>Vous:</strong> ${msg}</div>`;
+            input.value = '';
+            
+            setTimeout(() => {
+                chat.innerHTML += `<div class="bg-blue-50 p-3 rounded-lg mt-3"><strong>IA:</strong> Message reçu !</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }, 500);
+        }
+
+        // NOTIFICATIONS
+        function loadNotifications() {
+            const list = document.getElementById('notificationsList');
+            if (!data.notifications.length) {
+                list.innerHTML = '<div class="p-3 text-center text-gray-500 text-sm">Aucune notification</div>';
+                document.getElementById('notifBadge').classList.add('hidden');
+                return;
+            }
+            
+            list.innerHTML = data.notifications.map(n => `
+                <div class="p-3 hover:bg-gray-50 flex justify-between">
+                    <div class="flex-1">
+                        <div class="text-sm">${n.message}</div>
+                        <div class="text-xs text-gray-500">${n.time}</div>
+                    </div>
+                    <button onclick="deleteNotification(${n.id})" class="text-red-500 ml-2">×</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('notifBadge').classList.remove('hidden');
+            document.getElementById('notifBadge').textContent = data.notifications.length;
+        }
+
+        function toggleNotifications() {
+            document.getElementById('notificationsPanel').classList.toggle('hidden');
+        }
+
+        function clearAllNotifications() {
+            if (confirm('Effacer toutes les notifications ?')) {
+                data.notifications = [];
+                loadNotifications();
+                saveData();
+            }
+        }
+
+        function deleteNotification(id) {
+            data.notifications = data.notifications.filter(n => n.id !== id);
+            loadNotifications();
+            saveData();
         }
 
         function addNotification(type, message, time) {
-            const newId = Math.max(...data.notifications.map(n => n.id), 0) + 1;
+            const newId = Math.max(...data.notifications.map(n => n.id || 0), 0) + 1;
             data.notifications.unshift({id: newId, type, message, time});
             if (data.notifications.length > 10) data.notifications.pop();
             loadNotifications();
+            saveData();
         }
 
-        function logout() {
-            if (confirm('Déconnexion ?')) {
-                alert('À bientôt !');
-            }
-        }
+        // AUTO-SAVE
+        setInterval(() => { if (!useFirebase) saveData(); }, 5000);
 
-        // PERSISTENCE
-        function saveData() {
-            try {
-                localStorage.setItem('restaurantOS_data', JSON.stringify(data));
-            } catch (e) {
-                console.error('Erreur sauvegarde:', e);
-            }
-        }
-
-        function loadData() {
-            try {
-                const saved = localStorage.getItem('restaurantOS_data');
-                if (saved) {
-                    const savedData = JSON.parse(saved);
-                    data = { ...data, ...savedData };
-                }
-            } catch (e) {
-                console.error('Erreur chargement:', e);
-            }
-        }
-
-        setInterval(saveData, 5000);
-
+        // CLICK OUTSIDE
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('notificationsPanel');
             const btn = e.target.closest('button[onclick="toggleNotifications()"]');
@@ -1617,11 +898,12 @@
             }
         });
 
+        // INIT
         window.addEventListener('DOMContentLoaded', () => {
-            loadData();
-            init();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('newTaskDeadline').value = today;
+            initFirebase();
+            document.body.classList.add('dark');
+            document.getElementById('darkModeIcon').textContent = '☀️';
+            setTimeout(() => loadData(), 500);
         });
     </script>
 </body>
