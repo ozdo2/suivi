@@ -13,6 +13,21 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .notification { animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        
+        /* Dark Mode */
+        .dark { background-color: #0f172a; color: #e2e8f0; }
+        .dark .bg-white { background-color: #1e293b; }
+        .dark .bg-gray-50 { background-color: #0f172a; }
+        .dark .bg-gray-100 { background-color: #334155; }
+        .dark .text-gray-600 { color: #94a3b8; }
+        .dark .text-gray-700 { color: #cbd5e1; }
+        .dark .text-gray-900 { color: #f1f5f9; }
+        .dark .border { border-color: #334155; }
+        .dark .border-b { border-bottom-color: #334155; }
+        .dark .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5); }
+        .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
+        .dark .hover\:bg-gray-50:hover { background-color: #334155; }
+        .dark .hover\:bg-gray-100:hover { background-color: #475569; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -33,6 +48,9 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
+                    <button onclick="toggleDarkMode()" class="p-2 hover:bg-gray-100 rounded" title="Mode sombre">
+                        <span id="darkModeIcon">🌙</span>
+                    </button>
                     <button onclick="toggleNotifications()" class="relative p-2 hover:bg-gray-100 rounded">
                         🔔
                         <span id="notifBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
@@ -137,7 +155,7 @@
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">📋 Gestion des Tâches</h2>
             <div class="flex space-x-2">
-                <select onchange="filterTasks(this.value)" class="border rounded px-3 py-2">
+                <select onchange="filterTasks(this.value)" class="border rounded px-3 py-2 bg-white">
                     <option value="all">Toutes</option>
                     <option value="todo">À faire</option>
                     <option value="doing">En cours</option>
@@ -472,60 +490,7 @@
             </div>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-lg mb-4">📊 Évolution MRR</h3>
-                <div class="space-y-3">
-                    <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span>Janvier</span>
-                            <span class="font-semibold">400€</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-500 h-2 rounded-full" style="width: 15%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span>Décembre (actuel)</span>
-                            <span class="font-semibold text-green-600">1200€</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-green-500 h-2 rounded-full" style="width: 24%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-lg mb-4">🎯 Pipeline de vente</h3>
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <div class="font-semibold">Prospects contactés</div>
-                            <div class="text-sm text-gray-500">25 restaurants</div>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-400">25</div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <div class="font-semibold">Démos planifiées</div>
-                            <div class="text-sm text-gray-500">10 rendez-vous</div>
-                        </div>
-                        <div class="text-2xl font-bold text-yellow-500">10</div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <div class="font-semibold">Clients signés</div>
-                            <div class="text-sm text-gray-500">3 actifs</div>
-                        </div>
-                        <div class="text-2xl font-bold text-green-500">3</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6 mt-6">
+        <div class="bg-white rounded-lg shadow p-6">
             <h3 class="font-bold text-lg mb-4">💰 ROI Client Moyen</h3>
             <div class="grid md:grid-cols-4 gap-4 text-center">
                 <div class="border rounded p-4">
@@ -570,7 +535,7 @@
             
             <div class="p-4 border-t">
                 <div class="flex space-x-2">
-                    <input id="aiInput" type="text" placeholder="Pose ta question..." class="flex-1 border rounded px-3 py-2" onkeypress="if(event.key==='Enter') sendAIMessage()">
+                    <input id="aiInput" type="text" placeholder="Pose ta question..." class="flex-1 border rounded px-3 py-2 bg-white" onkeypress="if(event.key==='Enter') sendAIMessage()">
                     <button onclick="sendAIMessage()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Envoyer</button>
                 </div>
             </div>
@@ -597,29 +562,38 @@
         </div>
     </div>
 
-    <!-- MODAL: Nouveau Projet -->
+    <!-- MODAL: Nouveau/Modifier Projet -->
     <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-enter">
         <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-xl font-bold mb-4">🍽️ Nouveau Restaurant</h3>
+            <h3 id="projectModalTitle" class="text-xl font-bold mb-4">🍽️ Nouveau Restaurant</h3>
             <div class="space-y-3">
-                <input id="newProjectName" type="text" placeholder="Nom du restaurant *" class="w-full border rounded px-3 py-2">
-                <input id="newProjectContact" type="email" placeholder="Email de contact *" class="w-full border rounded px-3 py-2">
-                <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2">
-                <select id="newProjectStatus" class="w-full border rounded px-3 py-2">
+                <input id="editProjectId" type="hidden">
+                <input id="newProjectName" type="text" placeholder="Nom du restaurant *" class="w-full border rounded px-3 py-2 bg-white">
+                <input id="newProjectContact" type="email" placeholder="Email de contact *" class="w-full border rounded px-3 py-2 bg-white">
+                <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2 bg-white">
+                <select id="newProjectStatus" class="w-full border rounded px-3 py-2 bg-white">
                     <option value="prospect">Prospect</option>
                     <option value="demo">Démo en cours</option>
                     <option value="active">Client actif</option>
+                    <option value="churned">Inactif</option>
                 </select>
-                <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2">
-                <select id="newProjectAssignee" class="w-full border rounded px-3 py-2">
+                <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2 bg-white">
+                <select id="newProjectAssignee" class="w-full border rounded px-3 py-2 bg-white">
                     <option value="Marc">Marc</option>
                     <option value="Julie">Julie</option>
                     <option value="Sophie">Sophie</option>
                 </select>
+                <select id="newProjectPhase" class="w-full border rounded px-3 py-2 bg-white">
+                    <option value="1">Phase 1 - Démo</option>
+                    <option value="2">Phase 2 - Intégration</option>
+                    <option value="3">Phase 3 - Lancement</option>
+                    <option value="4">Phase 4 - Croissance</option>
+                </select>
+                <input id="newProjectProgress" type="number" min="0" max="100" placeholder="Progression (%)" class="w-full border rounded px-3 py-2 bg-white">
             </div>
             <div class="flex space-x-2 mt-4">
                 <button onclick="closeProjectModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
-                <button onclick="createProject()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Créer</button>
+                <button onclick="saveProject()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Enregistrer</button>
             </div>
         </div>
     </div>
@@ -629,30 +603,30 @@
         <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 class="text-xl font-bold mb-4">➕ Nouvelle Tâche</h3>
             <div class="space-y-3">
-                <input id="newTaskTitle" type="text" placeholder="Titre de la tâche *" class="w-full border rounded px-3 py-2">
-                <textarea id="newTaskDesc" placeholder="Description..." class="w-full border rounded px-3 py-2 h-20"></textarea>
-                <select id="newTaskProject" class="w-full border rounded px-3 py-2">
+                <input id="newTaskTitle" type="text" placeholder="Titre de la tâche *" class="w-full border rounded px-3 py-2 bg-white">
+                <textarea id="newTaskDesc" placeholder="Description..." class="w-full border rounded px-3 py-2 h-20 bg-white"></textarea>
+                <select id="newTaskProject" class="w-full border rounded px-3 py-2 bg-white">
                     <option value="">Sélectionner un projet *</option>
                 </select>
-                <select id="newTaskPhase" class="w-full border rounded px-3 py-2">
+                <select id="newTaskPhase" class="w-full border rounded px-3 py-2 bg-white">
                     <option value="1">Phase 1 - Démo</option>
                     <option value="2">Phase 2 - Intégration</option>
                     <option value="3">Phase 3 - Lancement</option>
                     <option value="4">Phase 4 - Croissance</option>
                 </select>
-                <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
+                <select id="newTaskAssignee" class="w-full border rounded px-3 py-2 bg-white">
                     <option value="Marc">Marc</option>
                     <option value="Julie">Julie</option>
                     <option value="Sophie">Sophie</option>
                 </select>
-                <select id="newTaskPriority" class="w-full border rounded px-3 py-2">
+                <select id="newTaskPriority" class="w-full border rounded px-3 py-2 bg-white">
                     <option value="low">Basse</option>
                     <option value="medium">Moyenne</option>
                     <option value="high">Haute</option>
                     <option value="urgent">Urgente</option>
                 </select>
-                <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2">
-                <input id="newTaskGoal" type="text" placeholder="Objectif business" class="w-full border rounded px-3 py-2">
+                <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2 bg-white">
+                <input id="newTaskGoal" type="text" placeholder="Objectif business" class="w-full border rounded px-3 py-2 bg-white">
             </div>
             <div class="flex space-x-2 mt-4">
                 <button onclick="closeTaskModal()" class="flex-1 border rounded py-2 hover:bg-gray-50">Annuler</button>
@@ -667,7 +641,11 @@
             <div class="p-6 border-b sticky top-0 bg-white">
                 <div class="flex justify-between items-center">
                     <h3 id="modalProjectName" class="text-2xl font-bold">Restaurant Name</h3>
-                    <button onclick="closeProjectDetailModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    <div class="flex space-x-2">
+                        <button onclick="editProjectFromDetail()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">✏️ Modifier</button>
+                        <button onclick="deleteProjectConfirm()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">🗑️ Supprimer</button>
+                        <button onclick="closeProjectDetailModal()" class="text-gray-500 hover:text-gray-700 text-2xl ml-2">&times;</button>
+                    </div>
                 </div>
             </div>
             
@@ -700,6 +678,7 @@
                         <div><strong>Email:</strong> <span id="modalEmail"></span></div>
                         <div><strong>Téléphone:</strong> <span id="modalPhone"></span></div>
                         <div><strong>Responsable:</strong> <span id="modalAssignee"></span></div>
+                        <div><strong>Statut:</strong> <span id="modalStatus"></span></div>
                     </div>
                 </div>
 
@@ -732,10 +711,27 @@
                 {id: 1, type: "warning", message: "Tâche 'Déployer site' est en retard de 1 jour", time: "Il y a 2h"},
                 {id: 2, type: "success", message: "La Bella Vita a atteint 65% de progression", time: "Il y a 5h"},
                 {id: 3, type: "info", message: "Nouvelle tâche assignée par Marc", time: "Hier"}
-            ]
+            ],
+            darkMode: false
         };
 
-        let currentUser = "Marc"; // Simulé
+        let currentUser = "Marc";
+        let currentProjectId = null;
+
+        // DARK MODE
+        function toggleDarkMode() {
+            data.darkMode = !data.darkMode;
+            document.body.classList.toggle('dark', data.darkMode);
+            document.getElementById('darkModeIcon').textContent = data.darkMode ? '☀️' : '🌙';
+            saveData();
+        }
+
+        function loadDarkMode() {
+            if (data.darkMode) {
+                document.body.classList.add('dark');
+                document.getElementById('darkModeIcon').textContent = '☀️';
+            }
+        }
 
         // INIT
         function init() {
@@ -743,6 +739,7 @@
             loadProjects();
             loadTasks();
             loadNotifications();
+            loadDarkMode();
             document.getElementById('userName').textContent = currentUser;
         }
 
@@ -803,7 +800,6 @@
                 </div>
             `).join('');
 
-            // Urgent tasks
             const urgentTasks = document.getElementById('urgentTasks');
             const urgent = data.tasks.filter(t => t.priority === 'urgent' || t.priority === 'high').slice(0, 5);
             urgentTasks.innerHTML = urgent.map(t => {
@@ -816,7 +812,6 @@
                 `;
             }).join('');
 
-            // Update KPIs
             document.getElementById('signedRestaurants').textContent = data.projects.filter(p => p.status === 'active').length;
             document.getElementById('mrr').textContent = data.projects.reduce((sum, p) => sum + (p.status === 'active' ? p.revenue : 0), 0);
             document.getElementById('completedTasks').textContent = data.tasks.filter(t => t.status === 'done').length;
@@ -852,13 +847,13 @@
                 </div>
             `).join('');
 
-            // Update task modal project dropdown
             const taskProjectSelect = document.getElementById('newTaskProject');
             taskProjectSelect.innerHTML = '<option value="">Sélectionner un projet</option>' + 
                 data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
         }
 
         function viewProjectDetail(id) {
+            currentProjectId = id;
             const project = data.projects.find(p => p.id === id);
             const projectTasks = data.tasks.filter(t => t.projectId === id);
             
@@ -869,8 +864,8 @@
             document.getElementById('modalEmail').textContent = project.contact;
             document.getElementById('modalPhone').textContent = project.phone;
             document.getElementById('modalAssignee').textContent = project.assignee;
+            document.getElementById('modalStatus').textContent = getStatusText(project.status);
             
-            // Load tasks
             document.getElementById('modalTasks').innerHTML = projectTasks.length > 0 ? projectTasks.map(t => `
                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded border-l-4 ${getPriorityColor(t.priority)}">
                     <div class="flex-1">
@@ -881,7 +876,6 @@
                 </div>
             `).join('') : '<div class="text-gray-500 text-sm">Aucune tâche pour ce projet</div>';
             
-            // Load features
             const featureNames = {
                 reservations: '📅 Réservations',
                 menus: '🍽️ Menus',
@@ -899,6 +893,43 @@
 
         function closeProjectDetailModal() {
             document.getElementById('projectDetailModal').classList.add('hidden');
+            currentProjectId = null;
+        }
+
+        function editProjectFromDetail() {
+            const project = data.projects.find(p => p.id === currentProjectId);
+            if (!project) return;
+            
+            document.getElementById('projectModalTitle').textContent = '✏️ Modifier le Restaurant';
+            document.getElementById('editProjectId').value = project.id;
+            document.getElementById('newProjectName').value = project.name;
+            document.getElementById('newProjectContact').value = project.contact;
+            document.getElementById('newProjectPhone').value = project.phone;
+            document.getElementById('newProjectStatus').value = project.status;
+            document.getElementById('newProjectRevenue').value = project.revenue;
+            document.getElementById('newProjectAssignee').value = project.assignee;
+            document.getElementById('newProjectPhase').value = project.phase;
+            document.getElementById('newProjectProgress').value = project.progress;
+            
+            closeProjectDetailModal();
+            document.getElementById('projectModal').classList.remove('hidden');
+        }
+
+        function deleteProjectConfirm() {
+            if (!currentProjectId) return;
+            const project = data.projects.find(p => p.id === currentProjectId);
+            
+            if (confirm(`Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ?\n\nCette action est irréversible et supprimera aussi toutes les tâches associées.`)) {
+                data.projects = data.projects.filter(p => p.id !== currentProjectId);
+                data.tasks = data.tasks.filter(t => t.projectId !== currentProjectId);
+                
+                closeProjectDetailModal();
+                loadProjects();
+                loadDashboard();
+                loadTasks();
+                saveData();
+                addNotification('success', `Projet "${project.name}" supprimé`, 'Maintenant');
+            }
         }
 
         // TASKS
@@ -1041,6 +1072,16 @@
 
         // MODALS
         function openProjectModal() {
+            document.getElementById('projectModalTitle').textContent = '🍽️ Nouveau Restaurant';
+            document.getElementById('editProjectId').value = '';
+            document.getElementById('newProjectName').value = '';
+            document.getElementById('newProjectContact').value = '';
+            document.getElementById('newProjectPhone').value = '';
+            document.getElementById('newProjectStatus').value = 'prospect';
+            document.getElementById('newProjectRevenue').value = '';
+            document.getElementById('newProjectAssignee').value = 'Marc';
+            document.getElementById('newProjectPhase').value = '1';
+            document.getElementById('newProjectProgress').value = '0';
             document.getElementById('projectModal').classList.remove('hidden');
         }
 
@@ -1048,44 +1089,58 @@
             document.getElementById('projectModal').classList.add('hidden');
         }
 
-        function createProject() {
+        function saveProject() {
+            const editId = document.getElementById('editProjectId').value;
             const name = document.getElementById('newProjectName').value;
             const contact = document.getElementById('newProjectContact').value;
             const phone = document.getElementById('newProjectPhone').value;
             const status = document.getElementById('newProjectStatus').value;
             const revenue = parseInt(document.getElementById('newProjectRevenue').value) || 0;
             const assignee = document.getElementById('newProjectAssignee').value;
+            const phase = parseInt(document.getElementById('newProjectPhase').value);
+            const progress = parseInt(document.getElementById('newProjectProgress').value) || 0;
 
             if (!name || !contact) {
                 alert('⚠️ Nom et email obligatoires');
                 return;
             }
 
-            const newId = Math.max(...data.projects.map(p => p.id), 0) + 1;
-            data.projects.push({
-                id: newId,
-                name,
-                contact,
-                phone,
-                status,
-                revenue,
-                phase: 1,
-                progress: 0,
-                assignee,
-                features: ['reservations', 'menus']
-            });
+            if (editId) {
+                // Modification
+                const project = data.projects.find(p => p.id === parseInt(editId));
+                if (project) {
+                    project.name = name;
+                    project.contact = contact;
+                    project.phone = phone;
+                    project.status = status;
+                    project.revenue = revenue;
+                    project.assignee = assignee;
+                    project.phase = phase;
+                    project.progress = progress;
+                    addNotification('success', `Restaurant "${name}" modifié`, 'Maintenant');
+                }
+            } else {
+                // Création
+                const newId = Math.max(...data.projects.map(p => p.id), 0) + 1;
+                data.projects.push({
+                    id: newId,
+                    name,
+                    contact,
+                    phone,
+                    status,
+                    revenue,
+                    phase,
+                    progress,
+                    assignee,
+                    features: ['reservations', 'menus']
+                });
+                addNotification('success', `Restaurant "${name}" créé avec succès`, 'Maintenant');
+            }
 
             closeProjectModal();
             loadProjects();
             loadDashboard();
             saveData();
-            addNotification('success', `Restaurant "${name}" créé avec succès`, 'Maintenant');
-            
-            // Clear form
-            document.getElementById('newProjectName').value = '';
-            document.getElementById('newProjectContact').value = '';
-            document.getElementById('newProjectPhone').value = '';
-            document.getElementById('newProjectRevenue').value = '';
         }
 
         function openTaskModal() {
@@ -1131,7 +1186,6 @@
             saveData();
             addNotification('success', `Tâche "${title}" créée`, 'Maintenant');
             
-            // Clear form
             document.getElementById('newTaskTitle').value = '';
             document.getElementById('newTaskDesc').value = '';
             document.getElementById('newTaskDeadline').value = '';
@@ -1244,7 +1298,8 @@
             try {
                 const saved = localStorage.getItem('restaurantOS_data');
                 if (saved) {
-                    data = JSON.parse(saved);
+                    const savedData = JSON.parse(saved);
+                    data = { ...data, ...savedData };
                 }
             } catch (e) {
                 console.error('Erreur chargement:', e);
@@ -1258,7 +1313,7 @@
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('notificationsPanel');
             const btn = e.target.closest('button[onclick="toggleNotifications()"]');
-            if (!panel.contains(e.target) && !btn) {
+            if (!panel.contains(e.target) && !btn && !panel.classList.contains('hidden')) {
                 panel.classList.add('hidden');
             }
         });
@@ -1268,19 +1323,9 @@
             loadData();
             init();
             
-            // Set default date to today for task creation
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('newTaskDeadline').value = today;
         });
     </script>
 </body>
-</html>d-full" style="width: 8%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span>Février</span>
-                            <span class="font-semibold">750€</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-500 h-2 rounde
+</html>
