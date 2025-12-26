@@ -341,7 +341,7 @@
                     </select>
                     <div class="border-t pt-3">
                         <label class="text-sm font-semibold text-gray-700 mb-2 block">💰 Finances</label>
-                        <input id="newProjectInitialPrice" type="number" placeholder="Prix initial du contrat (€) *" class="w-full border rounded px-3 py-2 mb-2">
+                        <input id="newProjectInitialPrice" type="number" placeholder="Prix initial du contrat (€)" class="w-full border rounded px-3 py-2 mb-2">
                         <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel récurrent (€)" class="w-full border rounded px-3 py-2">
                         <p class="text-xs text-gray-500 mt-1">Prix initial = paiement unique à la signature</p>
                     </div>
@@ -957,11 +957,6 @@
             
             if (!name || !contact) {
                 alert('Nom et email obligatoires');
-                return;
-            }
-            
-            if (!initialPrice) {
-                alert('Le prix initial du contrat est obligatoire');
                 return;
             }
             
