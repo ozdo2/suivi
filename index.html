@@ -343,7 +343,7 @@
 
     <!-- Phase Modal -->
     <div id="phaseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 id="phaseModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Phase</h3>
             <div class="space-y-3">
                 <input id="editPhaseId" type="hidden">
@@ -358,6 +358,16 @@
                     <option value="red">🔴 Rouge</option>
                 </select>
                 <textarea id="newPhaseDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
+                
+                <div class="border-t pt-3 mt-3">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="font-semibold text-gray-700">Tâches de la phase</label>
+                        <button onclick="addTaskGroup()" class="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">+ Ajouter un groupe</button>
+                    </div>
+                    <div id="phaseTasksContainer" class="space-y-2">
+                        <!-- Task groups will be added here -->
+                    </div>
+                </div>
             </div>
             <div class="flex space-x-2 mt-4">
                 <button onclick="closePhaseModal()" class="flex-1 border rounded py-2">Annuler</button>
@@ -916,28 +926,101 @@
         // Phases
         function loadPhases() {
             const list = document.getElementById('phasesList');
+            
+            // Initialize with default phases if empty
+            if (data.phases.length === 0) {
+                data.phases = [
+                    {
+                        id: '1',
+                        name: 'Démo Fonctionnelle',
+                        duration: '7-10 jours',
+                        color: 'blue',
+                        desc: 'Création de la base du site',
+                        tasks: [
+                            {category: 'CODE', items: ['Structure HTML/CSS du site restaurant', 'Interface admin basique', 'Base de données (menu, réservations)']},
+                            {category: 'IA & STRATÉGIE', items: ['Rédaction prompt maître IA restaurant', 'Liste de 10 arguments de vente', 'Étude de marché locale (3 concurrents)']}
+                        ]
+                    },
+                    {
+                        id: '2',
+                        name: 'Intégration & Intelligence',
+                        duration: '5-7 jours',
+                        color: 'green',
+                        desc: 'Ajout des fonctionnalités intelligentes',
+                        tasks: [
+                            {category: 'CODE', items: ['Connexion API OpenAI', 'Système notifications email', 'Générateur QR Code dynamique']},
+                            {category: 'IA & STRATÉGIE', items: ['Tests prompts (20 scénarios difficiles)', 'Calcul économies mensuelles restaurant']}
+                        ]
+                    },
+                    {
+                        id: '3',
+                        name: 'Communication & Lancement',
+                        duration: '3-5 jours',
+                        color: 'yellow',
+                        desc: 'Préparation au lancement',
+                        tasks: [
+                            {category: 'CODE', items: ['Optimisation mobile responsive', 'Déploiement production (hébergement)', 'Accès Admin client configuré']},
+                            {category: 'IA & STRATÉGIE', items: ['Identité visuelle (nom, logo, couleurs)', 'Script de vente cold calling', 'Deck présentation client', 'Process onboarding + formation']}
+                        ]
+                    },
+                    {
+                        id: '4',
+                        name: 'Suivi & Croissance',
+                        duration: 'Continu',
+                        color: 'purple',
+                        desc: 'Amélioration continue',
+                        tasks: [
+                            {category: 'CODE', items: ['Automatisation création sites (template)', 'Intégration Stripe (paiements)', 'Système fidélité client']},
+                            {category: 'IA & STRATÉGIE', items: ['Collecte témoignages clients', 'Contenu LinkedIn/TikTok régulier', 'Stratégie parrainage (20€→15€)']}
+                        ]
+                    }
+                ];
+            }
+            
             list.innerHTML = data.phases.map((p, i) => {
                 const colorClasses = {
-                    blue: 'bg-blue-50 border-blue-200',
-                    green: 'bg-green-50 border-green-200',
-                    yellow: 'bg-yellow-50 border-yellow-200',
-                    purple: 'bg-purple-50 border-purple-200',
-                    orange: 'bg-orange-50 border-orange-200',
-                    red: 'bg-red-50 border-red-200'
+                    blue: 'bg-blue-50 border-blue-200 text-blue-800',
+                    green: 'bg-green-50 border-green-200 text-green-800',
+                    yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                    purple: 'bg-purple-50 border-purple-200 text-purple-800',
+                    orange: 'bg-orange-50 border-orange-200 text-orange-800',
+                    red: 'bg-red-50 border-red-200 text-red-800'
                 };
+                
                 return `
-                    <div class="bg-white rounded-lg shadow border-l-4 border-${p.color}-500">
-                        <div class="p-4 ${colorClasses[p.color] || 'bg-gray-50'} flex justify-between items-center">
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="p-4 ${colorClasses[p.color] || 'bg-gray-50'} border-b-4 border-${p.color}-500 flex justify-between items-center">
                             <div>
-                                <h3 class="text-lg font-bold text-${p.color}-800">Phase ${i + 1} - ${p.name}</h3>
-                                ${p.duration ? `<span class="text-sm text-gray-600">${p.duration}</span>` : ''}
+                                <h3 class="text-lg font-bold">Phase ${i + 1} - ${p.name}</h3>
+                                ${p.duration ? `<span class="text-sm opacity-75">${p.duration}</span>` : ''}
                             </div>
                             <div class="flex space-x-2">
-                                <button onclick="editPhase('${p.id}')" class="text-blue-600 hover:text-blue-700">✏️</button>
-                                <button onclick="deletePhase('${p.id}')" class="text-red-600 hover:text-red-700">🗑️</button>
+                                <button onclick="editPhase('${p.id}')" class="px-3 py-1 bg-white text-blue-600 rounded hover:bg-blue-100 text-sm font-medium">✏️ Modifier</button>
+                                <button onclick="deletePhase('${p.id}')" class="px-3 py-1 bg-white text-red-600 rounded hover:bg-red-100 text-sm font-medium">🗑️</button>
                             </div>
                         </div>
-                        ${p.desc ? `<div class="p-4"><p class="text-sm text-gray-600">${p.desc}</p></div>` : ''}
+                        ${p.desc ? `<div class="p-4 bg-gray-50 border-b"><p class="text-sm text-gray-700 italic">${p.desc}</p></div>` : ''}
+                        ${p.tasks && p.tasks.length > 0 ? `
+                            <div class="p-4">
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    ${p.tasks.map(taskGroup => `
+                                        <div>
+                                            <h4 class="font-semibold mb-3 text-${taskGroup.category === 'CODE' ? 'blue' : 'purple'}-600">
+                                                ${taskGroup.category === 'CODE' ? '💻' : '🧠'} ${taskGroup.category}
+                                            </h4>
+                                            <ul class="space-y-2">
+                                                ${taskGroup.items.map(item => `
+                                                    <li class="flex items-start text-sm">
+                                                        <input type="checkbox" class="mt-1 mr-2" onchange="saveData()">
+                                                        <span class="text-gray-700">${item}</span>
+                                                    </li>
+                                                `).join('')}
+                                            </ul>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
@@ -955,6 +1038,24 @@
                 document.getElementById('newPhaseDuration').value = phase.duration || '';
                 document.getElementById('newPhaseColor').value = phase.color || 'blue';
                 document.getElementById('newPhaseDesc').value = phase.desc || '';
+                
+                // Load tasks for editing
+                const tasksContainer = document.getElementById('phaseTasksContainer');
+                if (phase.tasks && phase.tasks.length > 0) {
+                    tasksContainer.innerHTML = phase.tasks.map((taskGroup, index) => `
+                        <div class="phase-task-group border rounded p-3 mb-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <input type="text" value="${taskGroup.category}" placeholder="Catégorie (ex: CODE)" 
+                                    class="task-category font-semibold border-0 border-b border-gray-300 px-2 py-1" data-index="${index}">
+                                <button onclick="removeTaskGroup(${index})" class="text-red-600 hover:text-red-700 text-sm">🗑️ Supprimer groupe</button>
+                            </div>
+                            <textarea class="task-items w-full border rounded px-3 py-2 text-sm" rows="4" 
+                                placeholder="Une tâche par ligne..." data-index="${index}">${taskGroup.items.join('\n')}</textarea>
+                        </div>
+                    `).join('');
+                } else {
+                    tasksContainer.innerHTML = '';
+                }
             } else {
                 title.textContent = '➕ Nouvelle Phase';
                 document.getElementById('editPhaseId').value = '';
@@ -962,9 +1063,32 @@
                 document.getElementById('newPhaseDuration').value = '';
                 document.getElementById('newPhaseColor').value = 'blue';
                 document.getElementById('newPhaseDesc').value = '';
+                document.getElementById('phaseTasksContainer').innerHTML = '';
             }
             
             modal.classList.remove('hidden');
+        }
+
+        function addTaskGroup() {
+            const container = document.getElementById('phaseTasksContainer');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'phase-task-group border rounded p-3 mb-3';
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <input type="text" placeholder="Catégorie (ex: CODE)" 
+                        class="task-category font-semibold border-0 border-b border-gray-300 px-2 py-1" data-index="${index}">
+                    <button onclick="this.closest('.phase-task-group').remove()" class="text-red-600 hover:text-red-700 text-sm">🗑️ Supprimer groupe</button>
+                </div>
+                <textarea class="task-items w-full border rounded px-3 py-2 text-sm" rows="4" 
+                    placeholder="Une tâche par ligne..." data-index="${index}"></textarea>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeTaskGroup(index) {
+            const groups = document.querySelectorAll('.phase-task-group');
+            if (groups[index]) groups[index].remove();
         }
 
         function closePhaseModal() {
@@ -982,6 +1106,19 @@
             const color = document.getElementById('newPhaseColor').value;
             const desc = document.getElementById('newPhaseDesc').value;
             
+            // Get tasks from task groups
+            const taskCategories = document.querySelectorAll('.task-category');
+            const taskItems = document.querySelectorAll('.task-items');
+            const tasks = [];
+            
+            taskCategories.forEach((catInput, i) => {
+                const category = catInput.value.trim();
+                const items = taskItems[i].value.split('\n').map(item => item.trim()).filter(item => item);
+                if (category && items.length > 0) {
+                    tasks.push({ category, items });
+                }
+            });
+            
             if (!name) {
                 alert('Nom obligatoire');
                 return;
@@ -993,10 +1130,11 @@
                 phase.duration = duration;
                 phase.color = color;
                 phase.desc = desc;
+                phase.tasks = tasks;
                 addNotification('success', `Phase "${name}" modifiée`, 'Maintenant');
             } else {
                 const newId = Date.now().toString();
-                data.phases.push({id: newId, name, duration, color, desc});
+                data.phases.push({id: newId, name, duration, color, desc, tasks});
                 addNotification('success', `Phase "${name}" créée`, 'Maintenant');
             }
             
