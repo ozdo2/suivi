@@ -359,6 +359,12 @@
                     <input id="newTaskTitle" type="text" placeholder="Titre *" class="w-full border rounded px-3 py-2">
                     <textarea id="newTaskDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
                     <select id="newTaskProject" class="w-full border rounded px-3 py-2"></select>
+                    <select id="newTaskStatus" class="w-full border rounded px-3 py-2">
+                        <option value="todo">📝 À faire</option>
+                        <option value="doing">🔄 En cours</option>
+                        <option value="blocked">⚠️ Bloquée</option>
+                        <option value="done">✅ Terminée</option>
+                    </select>
                     <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
                         <option value="Stephen">Stephen</option>
                         <option value="Eva">Eva</option>
@@ -1018,6 +1024,7 @@
                 document.getElementById('newTaskTitle').value = task.title;
                 document.getElementById('newTaskDesc').value = task.desc || '';
                 document.getElementById('newTaskProject').value = task.projectId;
+                document.getElementById('newTaskStatus').value = task.status;
                 document.getElementById('newTaskAssignee').value = task.assignee;
                 document.getElementById('newTaskPriority').value = task.priority;
                 document.getElementById('newTaskDeadline').value = task.deadline || '';
@@ -1027,6 +1034,7 @@
                 document.getElementById('newTaskTitle').value = '';
                 document.getElementById('newTaskDesc').value = '';
                 document.getElementById('newTaskProject').value = '';
+                document.getElementById('newTaskStatus').value = 'todo';
                 document.getElementById('newTaskAssignee').value = 'Stephen';
                 document.getElementById('newTaskPriority').value = 'medium';
                 document.getElementById('newTaskDeadline').value = '';
@@ -1048,6 +1056,7 @@
             const title = document.getElementById('newTaskTitle').value;
             const desc = document.getElementById('newTaskDesc').value;
             const projectId = document.getElementById('newTaskProject').value;
+            const status = document.getElementById('newTaskStatus').value;
             const assignee = document.getElementById('newTaskAssignee').value;
             const priority = document.getElementById('newTaskPriority').value;
             const deadline = document.getElementById('newTaskDeadline').value;
@@ -1062,13 +1071,14 @@
                 task.title = title;
                 task.desc = desc;
                 task.projectId = projectId;
+                task.status = status;
                 task.assignee = assignee;
                 task.priority = priority;
                 task.deadline = deadline;
                 addNotification('success', `Tâche "${title}" modifiée`, 'Maintenant');
             } else {
                 const newId = Date.now().toString();
-                data.tasks.push({id: newId, title, desc, projectId, assignee, priority, deadline, status: 'todo'});
+                data.tasks.push({id: newId, title, desc, projectId, assignee, priority, deadline, status});
                 addNotification('success', `Tâche "${title}" créée`, 'Maintenant');
             }
             
