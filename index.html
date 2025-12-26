@@ -315,41 +315,96 @@
 
     <!-- Task Modal -->
     <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="taskModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Tâche</h3>
-            <div class="space-y-3">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 id="taskModalTitle" class="text-xl font-bold mb-4 dark:text-white">➕ Nouvelle Tâche</h3>
+            <div class="space-y-4">
                 <input id="editTaskId" type="hidden">
-                <input id="newTaskTitle" type="text" placeholder="Titre *" class="w-full border rounded px-3 py-2">
-                <textarea id="newTaskDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
-                <select id="newTaskProject" class="w-full border rounded px-3 py-2"></select>
-                <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
-                    <option value="Stephen">Stephen</option>
-                    <option value="Eva">Eva</option>
-                </select>
-                <select id="newTaskPriority" class="w-full border rounded px-3 py-2">
-                    <option value="low">🟢 Basse</option>
-                    <option value="medium">🟡 Moyenne</option>
-                    <option value="high">🟠 Haute</option>
-                    <option value="urgent">🔴 Urgente</option>
-                </select>
-                <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2">
+                
+                <!-- Titre -->
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Titre de la tâche *</label>
+                    <input id="newTaskTitle" type="text" placeholder="Ex: Finaliser le design du menu" 
+                        class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Description</label>
+                    <textarea id="newTaskDesc" placeholder="Décrivez les détails de la tâche..." 
+                        class="w-full border dark:border-gray-600 rounded px-3 py-2 h-24 dark:bg-gray-700 dark:text-white"></textarea>
+                </div>
+                
+                <!-- Row 1: Projet + Assigné -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Projet *</label>
+                        <select id="newTaskProject" class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                            <option value="">Sélectionner un projet</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Assigné à</label>
+                        <select id="newTaskAssignee" class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                            <option value="Stephen">👤 Stephen</option>
+                            <option value="Eva">👤 Eva</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Row 2: Priorité + Deadline -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Priorité</label>
+                        <select id="newTaskPriority" class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                            <option value="low">🟢 Basse</option>
+                            <option value="medium">🟡 Moyenne</option>
+                            <option value="high">🟠 Haute</option>
+                            <option value="urgent">🔴 Urgente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Date limite</label>
+                        <input id="newTaskDeadline" type="date" 
+                            class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                    </div>
+                </div>
+                
+                <!-- Statut (lors de l'édition) -->
+                <div id="taskStatusContainer" class="hidden">
+                    <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Statut</label>
+                    <select id="newTaskStatus" class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                        <option value="todo">📝 À faire</option>
+                        <option value="doing">🔄 En cours</option>
+                        <option value="blocked">⚠️ Bloquée</option>
+                        <option value="done">✅ Terminée</option>
+                    </select>
+                </div>
             </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeTaskModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="saveTask()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+            
+            <div class="flex space-x-2 mt-6">
+                <button onclick="closeTaskModal()" class="flex-1 border dark:border-gray-600 rounded py-2 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white">Annuler</button>
+                <button onclick="saveTask()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">
+                    <span id="taskSaveBtn">Créer la tâche</span>
+                </button>
             </div>
+            
+            <!-- Delete button for editing -->
+            <button id="taskDeleteBtn" onclick="deleteTaskFromModal()" 
+                class="hidden w-full mt-2 bg-red-600 text-white rounded py-2 hover:bg-red-700">
+                🗑️ Supprimer la tâche
+            </button>
         </div>
     </div>
 
     <!-- Phase Modal -->
     <div id="phaseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 id="phaseModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Phase</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 id="phaseModalTitle" class="text-xl font-bold mb-4 dark:text-white">➕ Nouvelle Phase</h3>
             <div class="space-y-3">
                 <input id="editPhaseId" type="hidden">
-                <input id="newPhaseName" type="text" placeholder="Nom de la phase *" class="w-full border rounded px-3 py-2">
-                <input id="newPhaseDuration" type="text" placeholder="Durée (ex: 7-10 jours)" class="w-full border rounded px-3 py-2">
-                <select id="newPhaseColor" class="w-full border rounded px-3 py-2">
+                <input id="newPhaseName" type="text" placeholder="Nom de la phase *" class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                <input id="newPhaseDuration" type="text" placeholder="Durée (ex: 7-10 jours)" class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
+                <select id="newPhaseColor" class="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white">
                     <option value="blue">🔵 Bleu</option>
                     <option value="green">🟢 Vert</option>
                     <option value="yellow">🟡 Jaune</option>
@@ -357,11 +412,11 @@
                     <option value="orange">🟠 Orange</option>
                     <option value="red">🔴 Rouge</option>
                 </select>
-                <textarea id="newPhaseDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
+                <textarea id="newPhaseDesc" placeholder="Description" class="w-full border dark:border-gray-600 rounded px-3 py-2 h-20 dark:bg-gray-700 dark:text-white"></textarea>
                 
-                <div class="border-t pt-3 mt-3">
+                <div class="border-t dark:border-gray-600 pt-3 mt-3">
                     <div class="flex justify-between items-center mb-3">
-                        <label class="font-semibold text-gray-700">Tâches de la phase</label>
+                        <label class="font-semibold text-gray-700 dark:text-gray-300">Tâches de la phase</label>
                         <button onclick="addTaskGroup()" class="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">+ Ajouter un groupe</button>
                     </div>
                     <div id="phaseTasksContainer" class="space-y-2">
@@ -370,8 +425,8 @@
                 </div>
             </div>
             <div class="flex space-x-2 mt-4">
-                <button onclick="closePhaseModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="savePhase()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                <button onclick="closePhaseModal()" class="flex-1 border dark:border-gray-600 rounded py-2 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white">Annuler</button>
+                <button onclick="savePhase()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Enregistrer</button>
             </div>
         </div>
     </div>
@@ -500,18 +555,17 @@
             try {
                 const snapshot = await window.dbGet(window.dbRef(window.db, 'restaurantOS'));
                 if (snapshot.exists()) {
-                    data = {...data, ...snapshot.val()};
-                    // Ensure categories exist
-                    if (!data.categories || data.categories.length === 0) {
-                        data.categories = [
-                            {id: '1', name: 'Démarchage', icon: '📞', color: 'yellow', desc: 'Prospects en phase de contact'},
-                            {id: '2', name: 'En Production', icon: '🔨', color: 'blue', desc: 'Sites en cours de développement'},
-                            {id: '3', name: 'Signés', icon: '✅', color: 'green', desc: 'Contrats signés et actifs'},
-                            {id: '4', name: 'Modifications', icon: '🔄', color: 'orange', desc: 'Demandes de changements'},
-                            {id: '5', name: 'Terminés', icon: '🎉', color: 'purple', desc: 'Projets livrés'},
-                            {id: '6', name: 'En Pause', icon: '⏸️', color: 'gray', desc: 'Projets mis en attente'}
-                        ];
-                    }
+                    const loadedData = snapshot.val();
+                    // Merge with defaults, ensuring arrays are properly loaded
+                    data.settings = {...data.settings, ...loadedData.settings};
+                    data.projects = loadedData.projects || [];
+                    data.tasks = loadedData.tasks || [];
+                    data.phases = loadedData.phases || [];
+                    data.features = loadedData.features || [];
+                    data.categories = loadedData.categories || data.categories;
+                    data.notifications = loadedData.notifications || [];
+                    data.revenueBreakdown = loadedData.revenueBreakdown || [];
+                    data.customMetrics = loadedData.customMetrics || [];
                 }
                 recalculateMetrics();
             } catch (e) {
@@ -804,7 +858,6 @@
             saveData();
         }
 
-        // Tasks
         function loadTasks() {
             const columns = {todo: [], doing: [], blocked: [], done: []};
             data.tasks.forEach(t => columns[t.status].push(t));
@@ -817,13 +870,23 @@
                 col.innerHTML = columns[status].map(t => {
                     const project = data.projects.find(p => p.id === t.projectId);
                     const priorityColors = {low: 'green', medium: 'blue', high: 'orange', urgent: 'red'};
+                    const priorityEmojis = {low: '🟢', medium: '🟡', high: '🟠', urgent: '🔴'};
                     return `
-                        <div class="task-card bg-white p-3 rounded shadow-sm border-l-4 border-${priorityColors[t.priority]}-500 cursor-pointer hover:shadow-md" onclick="editTask('${t.id}')">
-                            <div class="font-semibold text-sm mb-1">${t.title}</div>
-                            <div class="text-xs text-gray-600">${project ? project.name : 'Sans projet'}</div>
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-xs text-gray-500">👤 ${t.assignee}</span>
-                                ${t.deadline ? `<span class="text-xs text-gray-500">📅 ${t.deadline}</span>` : ''}
+                        <div class="task-card bg-white dark:bg-gray-800 p-3 rounded shadow-sm border-l-4 border-${priorityColors[t.priority]}-500 cursor-pointer hover:shadow-md transition-all group" onclick="editTask('${t.id}')">
+                            <div class="flex justify-between items-start mb-1">
+                                <div class="font-semibold text-sm dark:text-white flex-1">${t.title}</div>
+                                <span class="text-xs ml-2">${priorityEmojis[t.priority]}</span>
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">${project ? project.name : 'Sans projet'}</div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500 dark:text-gray-500">👤 ${t.assignee}</span>
+                                ${t.deadline ? `<span class="text-xs text-gray-500 dark:text-gray-500">📅 ${new Date(t.deadline).toLocaleDateString('fr-FR')}</span>` : ''}
+                            </div>
+                            <div class="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="event.stopPropagation(); quickDeleteTask('${t.id}')" 
+                                    class="text-xs text-red-600 hover:text-red-700 dark:text-red-400">
+                                    🗑️ Supprimer
+                                </button>
                             </div>
                         </div>
                     `;
@@ -831,13 +894,28 @@
             });
         }
 
+        function quickDeleteTask(id) {
+            const task = data.tasks.find(t => t.id === id);
+            if (confirm(`Supprimer "${task.title}" ?`)) {
+                data.tasks = data.tasks.filter(t => t.id !== id);
+                loadTasks();
+                loadDashboard();
+                saveData();
+                addNotification('success', 'Tâche supprimée', 'Maintenant');
+            }
+        }
+
         function openTaskModal(id = null) {
             const modal = document.getElementById('taskModal');
             const title = document.getElementById('taskModalTitle');
+            const statusContainer = document.getElementById('taskStatusContainer');
+            const deleteBtn = document.getElementById('taskDeleteBtn');
+            const saveBtn = document.getElementById('taskSaveBtn');
             
             if (id) {
                 const task = data.tasks.find(t => t.id === id);
                 title.textContent = '✏️ Modifier la Tâche';
+                saveBtn.textContent = 'Enregistrer les modifications';
                 document.getElementById('editTaskId').value = id;
                 document.getElementById('newTaskTitle').value = task.title;
                 document.getElementById('newTaskDesc').value = task.desc || '';
@@ -845,8 +923,12 @@
                 document.getElementById('newTaskAssignee').value = task.assignee;
                 document.getElementById('newTaskPriority').value = task.priority;
                 document.getElementById('newTaskDeadline').value = task.deadline || '';
+                document.getElementById('newTaskStatus').value = task.status || 'todo';
+                statusContainer.classList.remove('hidden');
+                deleteBtn.classList.remove('hidden');
             } else {
                 title.textContent = '➕ Nouvelle Tâche';
+                saveBtn.textContent = 'Créer la tâche';
                 document.getElementById('editTaskId').value = '';
                 document.getElementById('newTaskTitle').value = '';
                 document.getElementById('newTaskDesc').value = '';
@@ -854,6 +936,8 @@
                 document.getElementById('newTaskAssignee').value = 'Stephen';
                 document.getElementById('newTaskPriority').value = 'medium';
                 document.getElementById('newTaskDeadline').value = '';
+                statusContainer.classList.add('hidden');
+                deleteBtn.classList.add('hidden');
             }
             
             modal.classList.remove('hidden');
@@ -875,9 +959,10 @@
             const assignee = document.getElementById('newTaskAssignee').value;
             const priority = document.getElementById('newTaskPriority').value;
             const deadline = document.getElementById('newTaskDeadline').value;
+            const status = id ? document.getElementById('newTaskStatus').value : 'todo';
             
             if (!title || !projectId) {
-                alert('Titre et projet obligatoires');
+                alert('⚠️ Le titre et le projet sont obligatoires');
                 return;
             }
             
@@ -889,10 +974,11 @@
                 task.assignee = assignee;
                 task.priority = priority;
                 task.deadline = deadline;
+                task.status = status;
                 addNotification('success', `Tâche "${title}" modifiée`, 'Maintenant');
             } else {
                 const newId = Date.now().toString();
-                data.tasks.push({id: newId, title, desc, projectId, assignee, priority, deadline, status: 'todo'});
+                data.tasks.push({id: newId, title, desc, projectId, assignee, priority, deadline, status});
                 addNotification('success', `Tâche "${title}" créée`, 'Maintenant');
             }
             
@@ -900,6 +986,21 @@
             loadTasks();
             loadDashboard();
             saveData();
+        }
+
+        function deleteTaskFromModal() {
+            const id = document.getElementById('editTaskId').value;
+            if (!id) return;
+            
+            const task = data.tasks.find(t => t.id === id);
+            if (confirm(`❌ Supprimer la tâche "${task.title}" ?\n\nCette action est irréversible.`)) {
+                data.tasks = data.tasks.filter(t => t.id !== id);
+                closeTaskModal();
+                loadTasks();
+                loadDashboard();
+                saveData();
+                addNotification('success', 'Tâche supprimée', 'Maintenant');
+            }
         }
 
         function changeTaskStatus(id) {
@@ -1073,14 +1174,14 @@
             const container = document.getElementById('phaseTasksContainer');
             const index = container.children.length;
             const div = document.createElement('div');
-            div.className = 'phase-task-group border rounded p-3 mb-3';
+            div.className = 'phase-task-group border dark:border-gray-600 rounded p-3 mb-3 bg-gray-50 dark:bg-gray-700';
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-2">
                     <input type="text" placeholder="Catégorie (ex: CODE)" 
-                        class="task-category font-semibold border-0 border-b border-gray-300 px-2 py-1" data-index="${index}">
-                    <button onclick="this.closest('.phase-task-group').remove()" class="text-red-600 hover:text-red-700 text-sm">🗑️ Supprimer groupe</button>
+                        class="task-category font-semibold border-0 border-b border-gray-300 dark:border-gray-500 px-2 py-1 bg-transparent dark:text-white" data-index="${index}">
+                    <button onclick="this.closest('.phase-task-group').remove()" class="text-red-600 dark:text-red-400 hover:text-red-700 text-sm">🗑️ Supprimer groupe</button>
                 </div>
-                <textarea class="task-items w-full border rounded px-3 py-2 text-sm" rows="4" 
+                <textarea class="task-items w-full border dark:border-gray-600 rounded px-3 py-2 text-sm dark:bg-gray-800 dark:text-white" rows="4" 
                     placeholder="Une tâche par ligne..." data-index="${index}"></textarea>
             `;
             container.appendChild(div);
