@@ -18,27 +18,31 @@
             projectId: "restaurantos-7bf0a",
             storageBucket: "restaurantos-7bf0a.firebasestorage.app",
             messagingSenderId: "501432201588",
-            appId: "1:501432201588:web:3720005ca099406dab3c21"
+            appId: "1:501432201588:web:3720005ca099406dab3c21",
+            measurementId: "G-N1KHN4JGEM"
         };
         
-        try {
-            const app = initializeApp(firebaseConfig);
-            const database = getDatabase(app);
-            window.firebaseDB = database;
-            window.firebaseRef = ref;
-            window.firebaseSet = set;
-            window.firebaseGet = get;
-            console.log('✅ Firebase prêt');
-        } catch (e) {
-            console.warn('⚠️ Firebase non disponible, mode local activé');
-        }
+        const app = initializeApp(firebaseConfig);
+        window.db = getDatabase(app);
+        window.dbRef = ref;
+        window.dbSet = set;
+        window.dbGet = get;
+        window.dbOnValue = onValue;
         
         window.addEventListener('load', () => {
-            setTimeout(() => window.initApp && window.initApp(), 500);
+            setTimeout(() => {
+                if (window.initApp) window.initApp();
+            }, 500);
         });
     </script>
     
     <style>
+        .phase-progress { transition: width 0.3s ease; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .task-card { transition: all 0.2s ease; }
+        .modal-enter { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
         .dark { background-color: #0f172a !important; color: #e2e8f0 !important; }
         .dark body { background-color: #0f172a !important; }
         .dark .bg-white { background-color: #1e293b !important; color: #e2e8f0 !important; }
@@ -47,13 +51,33 @@
         .dark .text-gray-600 { color: #94a3b8 !important; }
         .dark .text-gray-700 { color: #cbd5e1 !important; }
         .dark .text-gray-900 { color: #f1f5f9 !important; }
+        .dark .text-gray-500 { color: #64748b !important; }
+        .dark .border { border-color: #334155 !important; }
         .dark input, .dark textarea, .dark select {
             background-color: #334155 !important;
             color: #e2e8f0 !important;
             border-color: #475569 !important;
         }
-        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .task-card { transition: all 0.2s ease; }
+        .dark .task-card { background-color: #1e293b !important; }
+        .dark .hover\:bg-gray-50:hover { background-color: #334155 !important; }
+        
+        .editable-field {
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .editable-field:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .category-badge {
+            transition: all 0.2s;
+        }
+        .category-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -61,7 +85,18 @@
     <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
-                <h1 class="text-xl font-bold text-blue-600">🍽️ RestaurantOS</h1>
+                <div class="flex items-center space-x-8">
+                    <h1 class="text-xl font-bold text-blue-600">🍽️ RestaurantOS</h1>
+                    <div class="hidden md:flex space-x-4">
+                        <button onclick="showPage('dashboard')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Dashboard</button>
+                        <button onclick="showPage('projects')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Projets</button>
+                        <button onclick="showPage('tasks')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Tâches</button>
+                        <button onclick="showPage('phases')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Phases</button>
+                        <button onclick="showPage('features')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Features</button>
+                        <button onclick="showPage('analytics')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Analytics</button>
+                        <button onclick="showPage('categories')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Catégories</button>
+                    </div>
+                </div>
                 <div class="flex items-center space-x-3">
                     <button onclick="toggleDarkMode()" class="p-2 hover:bg-gray-100 rounded">
                         <span id="darkModeIcon">🌙</span>
@@ -70,103 +105,223 @@
                         🔔
                         <span id="notifBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
                     </button>
-                    <span class="text-sm text-gray-600 dark:text-gray-400">👤 Stephen</span>
+                    <span class="text-sm text-gray-600">👤 Stephen</span>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Notifications -->
-    <div id="notificationsPanel" class="hidden fixed right-4 top-16 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
-        <div class="p-4 border-b sticky top-0 bg-white dark:bg-gray-800">
+    <!-- Notifications Panel -->
+    <div id="notificationsPanel" class="hidden fixed right-4 top-16 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
+        <div class="p-4 border-b sticky top-0 bg-white">
             <div class="flex justify-between items-center">
-                <h3 class="font-semibold dark:text-white">Notifications</h3>
-                <button onclick="clearAllNotifications()" class="text-xs text-red-600">Tout effacer</button>
+                <h3 class="font-semibold">Notifications</h3>
+                <button onclick="clearAllNotifications()" class="text-xs text-red-600 hover:text-red-700">Tout effacer</button>
             </div>
         </div>
         <div id="notificationsList" class="divide-y"></div>
     </div>
 
-    <!-- Dashboard -->
+    <!-- Dashboard Page -->
     <div id="dashboard" class="page max-w-7xl mx-auto px-4 py-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600 dark:text-gray-400">Restaurants signés</div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Restaurants signés</div>
                 <div class="flex items-center justify-center space-x-2 mt-2">
-                    <button onclick="changeSignedRestaurants(-1)" class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600">−</button>
-                    <div class="text-2xl font-bold text-blue-600"><span id="signedRestaurants">0</span>/<span id="signedGoal">5</span></div>
-                    <button onclick="changeSignedRestaurants(1)" class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600">+</button>
+                    <button onclick="changeSignedRestaurants(-1)" class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 text-lg">−</button>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">
+                            <span id="signedRestaurants">0</span>/<span id="signedGoal">5</span>
+                        </div>
+                    </div>
+                    <button onclick="changeSignedRestaurants(1)" class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 text-lg">+</button>
+                </div>
+                <div class="text-xs text-gray-500 mt-1 text-center">Objectif mois</div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Revenu MRR Total</div>
+                <div class="text-center mt-2">
+                    <div class="text-2xl font-bold text-green-600"><span id="totalMRR">0</span>€</div>
+                    <div class="text-xs text-gray-500 mt-1">Calculé automatiquement</div>
                 </div>
             </div>
             
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600 dark:text-gray-400">Revenu MRR</div>
-                <div class="text-2xl font-bold text-green-600 text-center mt-2"><span id="totalMRR">0</span>€</div>
-            </div>
-            
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600 dark:text-gray-400">Tâches complétées</div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Tâches complétées</div>
                 <div class="text-2xl font-bold text-purple-600 text-center mt-2">
                     <span id="completedTasks">0</span>/<span id="totalTasks">0</span>
                 </div>
+                <div class="text-xs text-gray-500 mt-1 text-center"><span id="completionPercent">0</span>%</div>
             </div>
             
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600 dark:text-gray-400">Projets actifs</div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="text-sm text-gray-600">Projets actifs</div>
                 <div class="text-2xl font-bold text-orange-600 text-center mt-2"><span id="activeProjectsCount">0</span></div>
+                <div class="text-xs text-gray-500 mt-1 text-center">En cours</div>
             </div>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-4">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h2 class="text-lg font-semibold dark:text-white">📁 Projets</h2>
-                    <button onclick="openProjectModal()" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">+ Nouveau</button>
-                </div>
-                <div id="projectsList" class="p-4 space-y-2 max-h-96 overflow-y-auto"></div>
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="p-4 border-b">
+                <h2 class="text-lg font-semibold">🚀 Projets par Catégorie</h2>
             </div>
+            <div id="projectsByCategory" class="p-4"></div>
+        </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h2 class="text-lg font-semibold dark:text-white">✅ Tâches</h2>
-                    <button onclick="openTaskModal()" class="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">+ Nouvelle</button>
-                </div>
-                <div id="tasksList" class="p-4 space-y-2 max-h-96 overflow-y-auto"></div>
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-4 border-b">
+                <h2 class="text-lg font-semibold">✅ Tâches Prioritaires</h2>
+            </div>
+            <div id="urgentTasks" class="p-4 space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Projects Page -->
+    <div id="projects" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">📁 Tous les Projets</h2>
+            <div class="flex space-x-2">
+                <select id="filterCategory" onchange="loadProjects()" class="border rounded px-3 py-2 bg-white">
+                    <option value="">Toutes les catégories</option>
+                </select>
+                <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouveau Restaurant</button>
+            </div>
+        </div>
+        <div id="projectsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- Tasks Page -->
+    <div id="tasks" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">📋 Gestion des Tâches</h2>
+            <button onclick="openTaskModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Tâche</button>
+        </div>
+        <div id="tasksBoard" class="grid md:grid-cols-4 gap-4">
+            <div class="bg-gray-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3">📝 À faire (<span id="todoCount">0</span>)</h3>
+                <div id="todoColumn" class="space-y-2"></div>
+            </div>
+            <div class="bg-blue-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3">🔄 En cours (<span id="doingCount">0</span>)</h3>
+                <div id="doingColumn" class="space-y-2"></div>
+            </div>
+            <div class="bg-red-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3">⚠️ Bloquées (<span id="blockedCount">0</span>)</h3>
+                <div id="blockedColumn" class="space-y-2"></div>
+            </div>
+            <div class="bg-green-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3">✅ Terminées (<span id="doneCount">0</span>)</h3>
+                <div id="doneColumn" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
+    <!-- Phases Page -->
+    <div id="phases" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">🎯 Gestion des Phases</h2>
+            <button onclick="openPhaseModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Phase</button>
+        </div>
+        <div id="phasesList" class="space-y-4"></div>
+    </div>
+
+    <!-- Features Page -->
+    <div id="features" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">⚙️ Features Restaurant</h2>
+            <button onclick="openFeatureModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Feature</button>
+        </div>
+        <div id="featuresList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- Analytics Page -->
+    <div id="analytics" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <h2 class="text-2xl font-bold mb-6">📈 Analytics Business</h2>
+        
+        <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
+                <div class="text-sm opacity-90 mb-2">MRR Total</div>
+                <div class="text-3xl font-bold"><span id="analyticsMRR">0</span>€</div>
+                <div class="text-sm mt-2 opacity-75">Revenus mensuels récurrents</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
+                <div class="text-sm opacity-90 mb-2">ARR (Annuel)</div>
+                <div class="text-3xl font-bold"><span id="analyticsARR">0</span>€</div>
+                <div class="text-sm mt-2 opacity-75">MRR × 12</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
+                <div class="text-sm opacity-90 mb-2">Revenu moyen</div>
+                <div class="text-3xl font-bold"><span id="analyticsAvg">0</span>€</div>
+                <div class="text-sm mt-2 opacity-75">Par restaurant actif</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">💰 Répartition des Revenus</h3>
+                <button onclick="openRevenueModal()" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">✏️ Modifier</button>
+            </div>
+            <div id="revenueBreakdown" class="space-y-2"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="font-bold text-lg mb-4">📊 Métriques Personnalisées</h3>
+            <div id="customMetrics" class="space-y-3"></div>
+            <button onclick="openMetricModal()" class="mt-4 w-full border-2 border-dashed border-gray-300 rounded p-3 hover:border-blue-500 hover:bg-blue-50 text-gray-600">
+                + Ajouter une métrique
+            </button>
+        </div>
+    </div>
+
+    <!-- Categories Page -->
+    <div id="categories" class="page hidden max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">🏷️ Catégories de Projets</h2>
+            <button onclick="openCategoryModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Catégorie</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-4">Organisez vos projets avec des catégories personnalisées</p>
+            <div id="categoriesList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    
     <!-- Project Modal -->
     <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="projectModalTitle" class="text-xl font-bold mb-4 dark:text-white">🍽️ Nouveau Restaurant</h3>
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 id="projectModalTitle" class="text-xl font-bold mb-4">🍽️ Nouveau Restaurant</h3>
             <div class="space-y-3">
                 <input id="editProjectId" type="hidden">
                 <input id="newProjectName" type="text" placeholder="Nom du restaurant *" class="w-full border rounded px-3 py-2">
                 <input id="newProjectContact" type="email" placeholder="Email *" class="w-full border rounded px-3 py-2">
                 <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2">
+                <select id="newProjectCategory" class="w-full border rounded px-3 py-2">
+                    <option value="">Sélectionner une catégorie</option>
+                </select>
                 <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2">
+                <input id="newProjectProgress" type="number" min="0" max="100" placeholder="Progression (%)" class="w-full border rounded px-3 py-2">
                 <textarea id="newProjectNotes" placeholder="Notes..." class="w-full border rounded px-3 py-2 h-20"></textarea>
             </div>
             <div class="flex space-x-2 mt-4">
-                <button onclick="closeProjectModal()" class="flex-1 border rounded py-2 dark:text-white">Annuler</button>
-                <button onclick="saveProject()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Enregistrer</button>
+                <button onclick="closeProjectModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveProject()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
             </div>
-            <button id="deleteProjectBtn" onclick="deleteCurrentProject()" class="hidden w-full mt-2 bg-red-600 text-white rounded py-2 hover:bg-red-700">🗑️ Supprimer</button>
         </div>
     </div>
 
     <!-- Task Modal -->
     <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="taskModalTitle" class="text-xl font-bold mb-4 dark:text-white">➕ Nouvelle Tâche</h3>
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 id="taskModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Tâche</h3>
             <div class="space-y-3">
                 <input id="editTaskId" type="hidden">
                 <input id="newTaskTitle" type="text" placeholder="Titre *" class="w-full border rounded px-3 py-2">
                 <textarea id="newTaskDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
-                <select id="newTaskProject" class="w-full border rounded px-3 py-2">
-                    <option value="">Sélectionner un projet</option>
-                </select>
+                <select id="newTaskProject" class="w-full border rounded px-3 py-2"></select>
                 <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
                     <option value="Stephen">Stephen</option>
                     <option value="Eva">Eva</option>
@@ -177,56 +332,230 @@
                     <option value="high">🟠 Haute</option>
                     <option value="urgent">🔴 Urgente</option>
                 </select>
-                <select id="newTaskStatus" class="w-full border rounded px-3 py-2">
-                    <option value="todo">📝 À faire</option>
-                    <option value="doing">🔄 En cours</option>
-                    <option value="blocked">⚠️ Bloquée</option>
-                    <option value="done">✅ Terminée</option>
-                </select>
                 <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2">
             </div>
             <div class="flex space-x-2 mt-4">
-                <button onclick="closeTaskModal()" class="flex-1 border rounded py-2 dark:text-white">Annuler</button>
-                <button onclick="saveTask()" class="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Enregistrer</button>
+                <button onclick="closeTaskModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveTask()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
             </div>
-            <button id="deleteTaskBtn" onclick="deleteCurrentTask()" class="hidden w-full mt-2 bg-red-600 text-white rounded py-2 hover:bg-red-700">🗑️ Supprimer</button>
+        </div>
+    </div>
+
+    <!-- Phase Modal -->
+    <div id="phaseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 id="phaseModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Phase</h3>
+            <div class="space-y-3">
+                <input id="editPhaseId" type="hidden">
+                <input id="newPhaseName" type="text" placeholder="Nom de la phase *" class="w-full border rounded px-3 py-2">
+                <input id="newPhaseDuration" type="text" placeholder="Durée (ex: 7-10 jours)" class="w-full border rounded px-3 py-2">
+                <select id="newPhaseColor" class="w-full border rounded px-3 py-2">
+                    <option value="blue">🔵 Bleu</option>
+                    <option value="green">🟢 Vert</option>
+                    <option value="yellow">🟡 Jaune</option>
+                    <option value="purple">🟣 Violet</option>
+                    <option value="orange">🟠 Orange</option>
+                    <option value="red">🔴 Rouge</option>
+                </select>
+                <textarea id="newPhaseDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closePhaseModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="savePhase()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Modal -->
+    <div id="featureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 id="featureModalTitle" class="text-xl font-bold mb-4">⚙️ Nouvelle Feature</h3>
+            <div class="space-y-3">
+                <input id="editFeatureId" type="hidden">
+                <input id="newFeatureName" type="text" placeholder="Nom de la feature *" class="w-full border rounded px-3 py-2">
+                <input id="newFeatureIcon" type="text" placeholder="Emoji (ex: 🎯)" class="w-full border rounded px-3 py-2">
+                <textarea id="newFeatureDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
+                <select id="newFeatureType" class="w-full border rounded px-3 py-2">
+                    <option value="included">✅ Inclus (gratuit)</option>
+                    <option value="premium">💎 Premium (payant)</option>
+                </select>
+                <input id="newFeaturePrice" type="number" placeholder="Prix mensuel (€)" class="w-full border rounded px-3 py-2">
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeFeatureModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveFeature()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="categoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 id="categoryModalTitle" class="text-xl font-bold mb-4">🏷️ Nouvelle Catégorie</h3>
+            <div class="space-y-3">
+                <input id="editCategoryId" type="hidden">
+                <input id="newCategoryName" type="text" placeholder="Nom de la catégorie *" class="w-full border rounded px-3 py-2">
+                <input id="newCategoryIcon" type="text" placeholder="Emoji (ex: 🎯)" class="w-full border rounded px-3 py-2">
+                <select id="newCategoryColor" class="w-full border rounded px-3 py-2">
+                    <option value="blue">🔵 Bleu</option>
+                    <option value="green">🟢 Vert</option>
+                    <option value="yellow">🟡 Jaune</option>
+                    <option value="purple">🟣 Violet</option>
+                    <option value="orange">🟠 Orange</option>
+                    <option value="red">🔴 Rouge</option>
+                    <option value="gray">⚪ Gris</option>
+                </select>
+                <textarea id="newCategoryDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-16"></textarea>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeCategoryModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveCategory()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Modal -->
+    <div id="revenueModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">📊 Répartition des Revenus</h3>
+            <div id="revenueInputs" class="space-y-2"></div>
+            <button onclick="addRevenueCategory()" class="w-full border-2 border-dashed border-gray-300 rounded p-2 mt-3 hover:bg-gray-50">+ Ajouter</button>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeRevenueModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveRevenueBreakdown()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metric Modal -->
+    <div id="metricModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 id="metricModalTitle" class="text-xl font-bold mb-4">📊 Nouvelle Métrique</h3>
+            <div class="space-y-3">
+                <input id="editMetricId" type="hidden">
+                <input id="newMetricName" type="text" placeholder="Nom de la métrique *" class="w-full border rounded px-3 py-2">
+                <input id="newMetricValue" type="text" placeholder="Valeur *" class="w-full border rounded px-3 py-2">
+                <input id="newMetricUnit" type="text" placeholder="Unité (€, %, h...)" class="w-full border rounded px-3 py-2">
+                <select id="newMetricIcon" class="w-full border rounded px-3 py-2">
+                    <option value="📊">📊 Graphique</option>
+                    <option value="💰">💰 Argent</option>
+                    <option value="⏱️">⏱️ Temps</option>
+                    <option value="👥">👥 Personnes</option>
+                    <option value="📈">📈 Croissance</option>
+                    <option value="🎯">🎯 Objectif</option>
+                </select>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeMetricModal()" class="flex-1 border rounded py-2">Annuler</button>
+                <button onclick="saveMetric()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+            </div>
         </div>
     </div>
 
     <script>
         let data = {
-            settings: { signedRestaurants: 0, signedGoal: 5, currentMRR: 0, darkMode: true },
+            settings: {
+                signedRestaurants: 0,
+                signedGoal: 5,
+                darkMode: true
+            },
             projects: [],
             tasks: [],
-            notifications: []
+            phases: [],
+            features: [],
+            categories: [
+                {id: '1', name: 'Démarchage', icon: '📞', color: 'yellow', desc: 'Prospects en phase de contact'},
+                {id: '2', name: 'En Production', icon: '🔨', color: 'blue', desc: 'Sites en cours de développement'},
+                {id: '3', name: 'Signés', icon: '✅', color: 'green', desc: 'Contrats signés et actifs'},
+                {id: '4', name: 'Modifications', icon: '🔄', color: 'orange', desc: 'Demandes de changements'},
+                {id: '5', name: 'Terminés', icon: '🎉', color: 'purple', desc: 'Projets livrés'},
+                {id: '6', name: 'En Pause', icon: '⏸️', color: 'gray', desc: 'Projets mis en attente'}
+            ],
+            notifications: [],
+            revenueBreakdown: [],
+            customMetrics: []
         };
 
-        // Firebase save/load
-        async function saveToFirebase() {
-            if (!window.firebaseDB) return;
+        // Firebase
+        async function saveData() {
             try {
-                const dbRef = window.firebaseRef(window.firebaseDB, 'restaurantOS');
-                await window.firebaseSet(dbRef, data);
-                console.log('✅ Sauvegardé dans Firebase');
+                await window.dbSet(window.dbRef(window.db, 'restaurantOS'), data);
+                recalculateMetrics();
             } catch (e) {
-                console.warn('⚠️ Firebase save error:', e);
+                console.error('Erreur:', e);
             }
         }
 
-        async function loadFromFirebase() {
-            if (!window.firebaseDB) return false;
+        async function loadData() {
             try {
-                const dbRef = window.firebaseRef(window.firebaseDB, 'restaurantOS');
-                const snapshot = await window.firebaseGet(dbRef);
+                const snapshot = await window.dbGet(window.dbRef(window.db, 'restaurantOS'));
                 if (snapshot.exists()) {
-                    data = snapshot.val();
-                    console.log('✅ Chargé depuis Firebase');
-                    return true;
+                    data = {...data, ...snapshot.val()};
+                    // Ensure categories exist
+                    if (!data.categories || data.categories.length === 0) {
+                        data.categories = [
+                            {id: '1', name: 'Démarchage', icon: '📞', color: 'yellow', desc: 'Prospects en phase de contact'},
+                            {id: '2', name: 'En Production', icon: '🔨', color: 'blue', desc: 'Sites en cours de développement'},
+                            {id: '3', name: 'Signés', icon: '✅', color: 'green', desc: 'Contrats signés et actifs'},
+                            {id: '4', name: 'Modifications', icon: '🔄', color: 'orange', desc: 'Demandes de changements'},
+                            {id: '5', name: 'Terminés', icon: '🎉', color: 'purple', desc: 'Projets livrés'},
+                            {id: '6', name: 'En Pause', icon: '⏸️', color: 'gray', desc: 'Projets mis en attente'}
+                        ];
+                    }
                 }
+                recalculateMetrics();
             } catch (e) {
-                console.warn('⚠️ Firebase load error:', e);
+                console.error('Erreur:', e);
             }
-            return false;
+        }
+
+        // Real-time metrics calculation
+        function recalculateMetrics() {
+            // Calculate total MRR
+            const totalMRR = data.projects.reduce((sum, p) => sum + (parseInt(p.revenue) || 0), 0);
+            data.settings.currentMRR = totalMRR;
+            
+            // Calculate signed restaurants (active category)
+            const signedCategory = data.categories.find(c => c.name === 'Signés');
+            if (signedCategory) {
+                data.settings.signedRestaurants = data.projects.filter(p => p.categoryId === signedCategory.id).length;
+            }
+            
+            updateDashboardMetrics();
+        }
+
+        function updateDashboardMetrics() {
+            document.getElementById('totalMRR').textContent = data.settings.currentMRR || 0;
+            document.getElementById('signedRestaurants').textContent = data.settings.signedRestaurants || 0;
+            document.getElementById('analyticsMRR').textContent = data.settings.currentMRR || 0;
+            document.getElementById('analyticsARR').textContent = (data.settings.currentMRR || 0) * 12;
+            
+            const activeProjects = data.projects.filter(p => p.categoryId !== data.categories.find(c => c.name === 'Terminés')?.id);
+            document.getElementById('activeProjectsCount').textContent = activeProjects.length;
+            
+            const avgRevenue = activeProjects.length > 0 ? Math.round(data.settings.currentMRR / activeProjects.length) : 0;
+            document.getElementById('analyticsAvg').textContent = avgRevenue;
+            
+            const completed = data.tasks.filter(t => t.status === 'done').length;
+            const total = data.tasks.length;
+            document.getElementById('completedTasks').textContent = completed;
+            document.getElementById('totalTasks').textContent = total;
+            document.getElementById('completionPercent').textContent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            document.getElementById('ongoingTasks').textContent = data.tasks.filter(t => t.status === 'doing').length;
+        }
+
+        // Navigation
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(pageName).classList.remove('hidden');
+            
+            if (pageName === 'dashboard') loadDashboard();
+            if (pageName === 'projects') loadProjects();
+            if (pageName === 'tasks') loadTasks();
+            if (pageName === 'phases') loadPhases();
+            if (pageName === 'features') loadFeatures();
+            if (pageName === 'analytics') loadAnalytics();
+            if (pageName === 'categories') loadCategories();
         }
 
         // Dark mode
@@ -234,14 +563,7 @@
             data.settings.darkMode = !data.settings.darkMode;
             document.body.classList.toggle('dark', data.settings.darkMode);
             document.getElementById('darkModeIcon').textContent = data.settings.darkMode ? '☀️' : '🌙';
-            saveToFirebase();
-        }
-
-        // Signed restaurants
-        function changeSignedRestaurants(delta) {
-            data.settings.signedRestaurants = Math.max(0, Math.min(99, data.settings.signedRestaurants + delta));
-            updateUI();
-            saveToFirebase();
+            saveData();
         }
 
         // Notifications
@@ -249,101 +571,162 @@
             document.getElementById('notificationsPanel').classList.toggle('hidden');
         }
 
-        function addNotification(message) {
-            data.notifications.unshift({ message, time: new Date().toLocaleTimeString('fr-FR') });
-            if (data.notifications.length > 20) data.notifications.pop();
-            loadNotifications();
-            saveToFirebase();
-        }
-
         function loadNotifications() {
             const list = document.getElementById('notificationsList');
-            const badge = document.getElementById('notifBadge');
-            
             if (data.notifications.length === 0) {
                 list.innerHTML = '<div class="p-3 text-center text-gray-500 text-sm">Aucune notification</div>';
-                badge.classList.add('hidden');
-            } else {
-                list.innerHTML = data.notifications.map((n, i) => `
-                    <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="text-sm dark:text-white">${n.message}</div>
-                            <div class="text-xs text-gray-500 mt-1">${n.time}</div>
-                        </div>
-                        <button onclick="deleteNotification(${i})" class="ml-2 text-red-500">✕</button>
-                    </div>
-                `).join('');
-                badge.classList.remove('hidden');
-                badge.textContent = data.notifications.length;
+                document.getElementById('notifBadge').classList.add('hidden');
+                return;
             }
+            
+            list.innerHTML = data.notifications.map((n, i) => `
+                <div class="p-3 hover:bg-gray-50 flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="text-sm">${n.message}</div>
+                        <div class="text-xs text-gray-500 mt-1">${n.time}</div>
+                    </div>
+                    <button onclick="deleteNotification(${i})" class="ml-2 text-red-500 hover:text-red-700 text-xs">✕</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('notifBadge').classList.remove('hidden');
+            document.getElementById('notifBadge').textContent = data.notifications.length;
         }
 
         function deleteNotification(index) {
             data.notifications.splice(index, 1);
             loadNotifications();
-            saveToFirebase();
+            saveData();
         }
 
         function clearAllNotifications() {
             if (confirm('Effacer toutes les notifications ?')) {
                 data.notifications = [];
                 loadNotifications();
-                saveToFirebase();
+                saveData();
             }
+        }
+
+        function addNotification(type, message, time) {
+            data.notifications.unshift({type, message, time});
+            if (data.notifications.length > 50) data.notifications.pop();
+            loadNotifications();
+        }
+
+        // Dashboard
+        function loadDashboard() {
+            updateDashboardMetrics();
+            
+            // Projects by category
+            const byCategory = document.getElementById('projectsByCategory');
+            const grouped = {};
+            data.categories.forEach(cat => {
+                grouped[cat.id] = data.projects.filter(p => p.categoryId === cat.id);
+            });
+            
+            byCategory.innerHTML = data.categories.map(cat => {
+                const projects = grouped[cat.id] || [];
+                const totalRevenue = projects.reduce((sum, p) => sum + (parseInt(p.revenue) || 0), 0);
+                return `
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold">${cat.icon} ${cat.name}</h3>
+                            <span class="text-sm text-gray-600">${projects.length} projets • ${totalRevenue}€/mois</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-${cat.color}-500 h-2 rounded-full" style="width: ${data.projects.length > 0 ? (projects.length / data.projects.length) * 100 : 0}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Urgent tasks
+            const urgent = document.getElementById('urgentTasks');
+            const priorityTasks = data.tasks.filter(t => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'done').slice(0, 5);
+            urgent.innerHTML = priorityTasks.length > 0 ? priorityTasks.map(t => {
+                const project = data.projects.find(p => p.id === t.projectId);
+                return `
+                    <div class="p-3 bg-gray-50 rounded border-l-4 border-${t.priority === 'urgent' ? 'red' : 'orange'}-500 cursor-pointer hover:bg-gray-100" onclick="editTask('${t.id}')">
+                        <div class="font-medium text-sm">${t.title}</div>
+                        <div class="text-xs text-gray-600 mt-1">${project ? project.name : 'Sans projet'} • ${t.assignee}</div>
+                    </div>
+                `;
+            }).join('') : '<div class="text-gray-500 text-sm">Aucune tâche prioritaire</div>';
         }
 
         // Projects
         function loadProjects() {
-            const list = document.getElementById('projectsList');
-            const select = document.getElementById('newTaskProject');
+            const filterCat = document.getElementById('filterCategory').value;
+            const filtered = filterCat ? data.projects.filter(p => p.categoryId === filterCat) : data.projects;
             
-            if (data.projects.length === 0) {
-                list.innerHTML = '<div class="text-gray-500 text-sm text-center py-4">Aucun projet</div>';
-                select.innerHTML = '<option value="">Aucun projet disponible</option>';
-            } else {
-                list.innerHTML = data.projects.map(p => `
-                    <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded border-l-4 border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" onclick="editProject('${p.id}')">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="font-semibold dark:text-white">${p.name}</div>
-                                <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">${p.contact}</div>
-                                ${p.revenue ? `<div class="text-xs text-green-600 dark:text-green-400 mt-1">💰 ${p.revenue}€/mois</div>` : ''}
-                            </div>
-                            <button onclick="event.stopPropagation(); deleteProject('${p.id}')" class="text-red-500 hover:text-red-700 ml-2">🗑️</button>
+            const list = document.getElementById('projectsList');
+            list.innerHTML = filtered.map(p => {
+                const category = data.categories.find(c => c.id === p.categoryId);
+                return `
+                    <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-bold text-lg">${p.name}</h3>
+                            <span class="px-2 py-1 text-xs rounded bg-${category?.color || 'gray'}-100 text-${category?.color || 'gray'}-800">
+                                ${category?.icon || '📁'} ${category?.name || 'Sans catégorie'}
+                            </span>
+                        </div>
+                        <div class="text-sm space-y-1 mb-3">
+                            <div class="text-gray-600">📧 ${p.contact}</div>
+                            <div class="text-gray-600">📱 ${p.phone || 'N/A'}</div>
+                            <div class="font-semibold text-green-600">💰 ${p.revenue || 0}€/mois</div>
+                            ${p.progress ? `<div class="text-gray-600">📊 Progression: ${p.progress}%</div>` : ''}
+                        </div>
+                        ${p.notes ? `<div class="text-xs text-gray-500 mb-3 italic">${p.notes}</div>` : ''}
+                        <div class="flex space-x-2">
+                            <button onclick="editProject('${p.id}')" class="flex-1 bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700">✏️ Modifier</button>
+                            <button onclick="deleteProject('${p.id}')" class="bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700">🗑️</button>
                         </div>
                     </div>
-                `).join('');
-                
-                select.innerHTML = '<option value="">Sélectionner un projet</option>' + 
-                    data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            }
+                `;
+            }).join('');
+            
+            // Update category filter
+            const select = document.getElementById('filterCategory');
+            select.innerHTML = '<option value="">Toutes les catégories</option>' + 
+                data.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+            
+            // Update task project selector
+            const taskSelect = document.getElementById('newTaskProject');
+            taskSelect.innerHTML = '<option value="">Sélectionner un projet</option>' + 
+                data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
         }
 
         function openProjectModal(id = null) {
             const modal = document.getElementById('projectModal');
             const title = document.getElementById('projectModalTitle');
-            const deleteBtn = document.getElementById('deleteProjectBtn');
             
             if (id) {
-                const p = data.projects.find(pr => pr.id === id);
+                const project = data.projects.find(p => p.id === id);
                 title.textContent = '✏️ Modifier le Restaurant';
                 document.getElementById('editProjectId').value = id;
-                document.getElementById('newProjectName').value = p.name;
-                document.getElementById('newProjectContact').value = p.contact;
-                document.getElementById('newProjectPhone').value = p.phone || '';
-                document.getElementById('newProjectRevenue').value = p.revenue || '';
-                document.getElementById('newProjectNotes').value = p.notes || '';
-                deleteBtn.classList.remove('hidden');
+                document.getElementById('newProjectName').value = project.name;
+                document.getElementById('newProjectContact').value = project.contact;
+                document.getElementById('newProjectPhone').value = project.phone || '';
+                document.getElementById('newProjectCategory').value = project.categoryId || '';
+                document.getElementById('newProjectRevenue').value = project.revenue || '';
+                document.getElementById('newProjectProgress').value = project.progress || '';
+                document.getElementById('newProjectNotes').value = project.notes || '';
             } else {
                 title.textContent = '🍽️ Nouveau Restaurant';
                 document.getElementById('editProjectId').value = '';
                 document.getElementById('newProjectName').value = '';
                 document.getElementById('newProjectContact').value = '';
                 document.getElementById('newProjectPhone').value = '';
+                document.getElementById('newProjectCategory').value = '';
                 document.getElementById('newProjectRevenue').value = '';
+                document.getElementById('newProjectProgress').value = '';
                 document.getElementById('newProjectNotes').value = '';
-                deleteBtn.classList.add('hidden');
             }
+            
+            // Populate category select
+            const catSelect = document.getElementById('newProjectCategory');
+            catSelect.innerHTML = '<option value="">Sélectionner une catégorie</option>' + 
+                data.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
             
             modal.classList.remove('hidden');
         }
@@ -358,14 +741,16 @@
 
         function saveProject() {
             const id = document.getElementById('editProjectId').value;
-            const name = document.getElementById('newProjectName').value.trim();
-            const contact = document.getElementById('newProjectContact').value.trim();
-            const phone = document.getElementById('newProjectPhone').value.trim();
+            const name = document.getElementById('newProjectName').value;
+            const contact = document.getElementById('newProjectContact').value;
+            const phone = document.getElementById('newProjectPhone').value;
+            const categoryId = document.getElementById('newProjectCategory').value;
             const revenue = parseInt(document.getElementById('newProjectRevenue').value) || 0;
-            const notes = document.getElementById('newProjectNotes').value.trim();
+            const progress = parseInt(document.getElementById('newProjectProgress').value) || 0;
+            const notes = document.getElementById('newProjectNotes').value;
             
             if (!name || !contact) {
-                alert('⚠️ Nom et email obligatoires');
+                alert('Nom et email obligatoires');
                 return;
             }
             
@@ -374,87 +759,82 @@
                 project.name = name;
                 project.contact = contact;
                 project.phone = phone;
+                project.categoryId = categoryId;
                 project.revenue = revenue;
+                project.progress = progress;
                 project.notes = notes;
-                addNotification(`✏️ Restaurant "${name}" modifié`);
+                addNotification('success', `Restaurant "${name}" modifié`, 'Maintenant');
             } else {
-                data.projects.push({
-                    id: 'p-' + Date.now(),
-                    name, contact, phone, revenue, notes
-                });
-                addNotification(`➕ Restaurant "${name}" créé`);
+                const newId = Date.now().toString();
+                data.projects.push({id: newId, name, contact, phone, categoryId, revenue, progress, notes});
+                addNotification('success', `Restaurant "${name}" créé`, 'Maintenant');
             }
             
             closeProjectModal();
-            updateUI();
-            saveToFirebase();
+            loadProjects();
+            loadDashboard();
+            saveData();
         }
 
         function deleteProject(id) {
             const project = data.projects.find(p => p.id === id);
-            if (confirm(`❌ Supprimer "${project.name}" ?\n\nToutes les tâches associées seront supprimées.`)) {
+            if (confirm(`Supprimer "${project.name}" ?\n\nToutes les tâches associées seront aussi supprimées.`)) {
                 data.projects = data.projects.filter(p => p.id !== id);
                 data.tasks = data.tasks.filter(t => t.projectId !== id);
-                addNotification(`🗑️ Restaurant "${project.name}" supprimé`);
-                updateUI();
-                saveToFirebase();
+                loadProjects();
+                loadDashboard();
+                saveData();
+                addNotification('success', `Restaurant "${project.name}" supprimé`, 'Maintenant');
             }
         }
 
-        function deleteCurrentProject() {
-            const id = document.getElementById('editProjectId').value;
-            if (id) {
-                closeProjectModal();
-                deleteProject(id);
-            }
+        function changeSignedRestaurants(delta) {
+            data.settings.signedRestaurants = Math.max(0, Math.min(data.settings.signedGoal, data.settings.signedRestaurants + delta));
+            updateDashboardMetrics();
+            saveData();
         }
 
         // Tasks
         function loadTasks() {
-            const list = document.getElementById('tasksList');
+            const columns = {todo: [], doing: [], blocked: [], done: []};
+            data.tasks.forEach(t => columns[t.status].push(t));
             
-            if (data.tasks.length === 0) {
-                list.innerHTML = '<div class="text-gray-500 text-sm text-center py-4">Aucune tâche</div>';
-            } else {
-                const priorityColors = {low: 'green', medium: 'blue', high: 'orange', urgent: 'red'};
-                const statusIcons = {todo: '📝', doing: '🔄', blocked: '⚠️', done: '✅'};
+            Object.keys(columns).forEach(status => {
+                const col = document.getElementById(status + 'Column');
+                const count = document.getElementById(status + 'Count');
+                if (count) count.textContent = columns[status].length;
                 
-                list.innerHTML = data.tasks.map(t => {
+                col.innerHTML = columns[status].map(t => {
                     const project = data.projects.find(p => p.id === t.projectId);
+                    const priorityColors = {low: 'green', medium: 'blue', high: 'orange', urgent: 'red'};
                     return `
-                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded border-l-4 border-${priorityColors[t.priority]}-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" onclick="editTask('${t.id}')">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <div class="font-semibold dark:text-white">${statusIcons[t.status]} ${t.title}</div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                        ${project ? project.name : 'Sans projet'} • ${t.assignee}
-                                    </div>
-                                </div>
-                                <button onclick="event.stopPropagation(); deleteTask('${t.id}')" class="text-red-500 hover:text-red-700 ml-2">🗑️</button>
+                        <div class="task-card bg-white p-3 rounded shadow-sm border-l-4 border-${priorityColors[t.priority]}-500 cursor-pointer hover:shadow-md" onclick="editTask('${t.id}')">
+                            <div class="font-semibold text-sm mb-1">${t.title}</div>
+                            <div class="text-xs text-gray-600">${project ? project.name : 'Sans projet'}</div>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-xs text-gray-500">👤 ${t.assignee}</span>
+                                ${t.deadline ? `<span class="text-xs text-gray-500">📅 ${t.deadline}</span>` : ''}
                             </div>
                         </div>
                     `;
                 }).join('');
-            }
+            });
         }
 
         function openTaskModal(id = null) {
             const modal = document.getElementById('taskModal');
             const title = document.getElementById('taskModalTitle');
-            const deleteBtn = document.getElementById('deleteTaskBtn');
             
             if (id) {
-                const t = data.tasks.find(task => task.id === id);
+                const task = data.tasks.find(t => t.id === id);
                 title.textContent = '✏️ Modifier la Tâche';
                 document.getElementById('editTaskId').value = id;
-                document.getElementById('newTaskTitle').value = t.title;
-                document.getElementById('newTaskDesc').value = t.desc || '';
-                document.getElementById('newTaskProject').value = t.projectId;
-                document.getElementById('newTaskAssignee').value = t.assignee;
-                document.getElementById('newTaskPriority').value = t.priority;
-                document.getElementById('newTaskStatus').value = t.status;
-                document.getElementById('newTaskDeadline').value = t.deadline || '';
-                deleteBtn.classList.remove('hidden');
+                document.getElementById('newTaskTitle').value = task.title;
+                document.getElementById('newTaskDesc').value = task.desc || '';
+                document.getElementById('newTaskProject').value = task.projectId;
+                document.getElementById('newTaskAssignee').value = task.assignee;
+                document.getElementById('newTaskPriority').value = task.priority;
+                document.getElementById('newTaskDeadline').value = task.deadline || '';
             } else {
                 title.textContent = '➕ Nouvelle Tâche';
                 document.getElementById('editTaskId').value = '';
@@ -463,9 +843,7 @@
                 document.getElementById('newTaskProject').value = '';
                 document.getElementById('newTaskAssignee').value = 'Stephen';
                 document.getElementById('newTaskPriority').value = 'medium';
-                document.getElementById('newTaskStatus').value = 'todo';
                 document.getElementById('newTaskDeadline').value = '';
-                deleteBtn.classList.add('hidden');
             }
             
             modal.classList.remove('hidden');
@@ -481,16 +859,15 @@
 
         function saveTask() {
             const id = document.getElementById('editTaskId').value;
-            const title = document.getElementById('newTaskTitle').value.trim();
-            const desc = document.getElementById('newTaskDesc').value.trim();
+            const title = document.getElementById('newTaskTitle').value;
+            const desc = document.getElementById('newTaskDesc').value;
             const projectId = document.getElementById('newTaskProject').value;
             const assignee = document.getElementById('newTaskAssignee').value;
             const priority = document.getElementById('newTaskPriority').value;
-            const status = document.getElementById('newTaskStatus').value;
             const deadline = document.getElementById('newTaskDeadline').value;
             
-            if (!title) {
-                alert('⚠️ Titre obligatoire');
+            if (!title || !projectId) {
+                alert('Titre et projet obligatoires');
                 return;
             }
             
@@ -501,104 +878,534 @@
                 task.projectId = projectId;
                 task.assignee = assignee;
                 task.priority = priority;
-                task.status = status;
                 task.deadline = deadline;
-                addNotification(`✏️ Tâche "${title}" modifiée`);
+                addNotification('success', `Tâche "${title}" modifiée`, 'Maintenant');
             } else {
-                data.tasks.push({
-                    id: 't-' + Date.now(),
-                    title, desc, projectId, assignee, priority, status, deadline
-                });
-                addNotification(`➕ Tâche "${title}" créée`);
+                const newId = Date.now().toString();
+                data.tasks.push({id: newId, title, desc, projectId, assignee, priority, deadline, status: 'todo'});
+                addNotification('success', `Tâche "${title}" créée`, 'Maintenant');
             }
             
             closeTaskModal();
-            updateUI();
-            saveToFirebase();
+            loadTasks();
+            loadDashboard();
+            saveData();
+        }
+
+        function changeTaskStatus(id) {
+            const task = data.tasks.find(t => t.id === id);
+            const statuses = ['todo', 'doing', 'blocked', 'done'];
+            const current = statuses.indexOf(task.status);
+            task.status = statuses[(current + 1) % statuses.length];
+            loadTasks();
+            loadDashboard();
+            saveData();
         }
 
         function deleteTask(id) {
             const task = data.tasks.find(t => t.id === id);
-            if (confirm(`❌ Supprimer "${task.title}" ?`)) {
+            if (confirm(`Supprimer la tâche "${task.title}" ?`)) {
                 data.tasks = data.tasks.filter(t => t.id !== id);
-                addNotification(`🗑️ Tâche "${task.title}" supprimée`);
-                updateUI();
-                saveToFirebase();
+                loadTasks();
+                loadDashboard();
+                saveData();
+                addNotification('success', 'Tâche supprimée', 'Maintenant');
             }
         }
 
-        function deleteCurrentTask() {
-            const id = document.getElementById('editTaskId').value;
+        // Phases
+        function loadPhases() {
+            const list = document.getElementById('phasesList');
+            list.innerHTML = data.phases.map((p, i) => {
+                const colorClasses = {
+                    blue: 'bg-blue-50 border-blue-200',
+                    green: 'bg-green-50 border-green-200',
+                    yellow: 'bg-yellow-50 border-yellow-200',
+                    purple: 'bg-purple-50 border-purple-200',
+                    orange: 'bg-orange-50 border-orange-200',
+                    red: 'bg-red-50 border-red-200'
+                };
+                return `
+                    <div class="bg-white rounded-lg shadow border-l-4 border-${p.color}-500">
+                        <div class="p-4 ${colorClasses[p.color] || 'bg-gray-50'} flex justify-between items-center">
+                            <div>
+                                <h3 class="text-lg font-bold text-${p.color}-800">Phase ${i + 1} - ${p.name}</h3>
+                                ${p.duration ? `<span class="text-sm text-gray-600">${p.duration}</span>` : ''}
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="editPhase('${p.id}')" class="text-blue-600 hover:text-blue-700">✏️</button>
+                                <button onclick="deletePhase('${p.id}')" class="text-red-600 hover:text-red-700">🗑️</button>
+                            </div>
+                        </div>
+                        ${p.desc ? `<div class="p-4"><p class="text-sm text-gray-600">${p.desc}</p></div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openPhaseModal(id = null) {
+            const modal = document.getElementById('phaseModal');
+            const title = document.getElementById('phaseModalTitle');
+            
             if (id) {
-                closeTaskModal();
-                deleteTask(id);
+                const phase = data.phases.find(p => p.id === id);
+                title.textContent = '✏️ Modifier la Phase';
+                document.getElementById('editPhaseId').value = id;
+                document.getElementById('newPhaseName').value = phase.name;
+                document.getElementById('newPhaseDuration').value = phase.duration || '';
+                document.getElementById('newPhaseColor').value = phase.color || 'blue';
+                document.getElementById('newPhaseDesc').value = phase.desc || '';
+            } else {
+                title.textContent = '➕ Nouvelle Phase';
+                document.getElementById('editPhaseId').value = '';
+                document.getElementById('newPhaseName').value = '';
+                document.getElementById('newPhaseDuration').value = '';
+                document.getElementById('newPhaseColor').value = 'blue';
+                document.getElementById('newPhaseDesc').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closePhaseModal() {
+            document.getElementById('phaseModal').classList.add('hidden');
+        }
+
+        function editPhase(id) {
+            openPhaseModal(id);
+        }
+
+        function savePhase() {
+            const id = document.getElementById('editPhaseId').value;
+            const name = document.getElementById('newPhaseName').value;
+            const duration = document.getElementById('newPhaseDuration').value;
+            const color = document.getElementById('newPhaseColor').value;
+            const desc = document.getElementById('newPhaseDesc').value;
+            
+            if (!name) {
+                alert('Nom obligatoire');
+                return;
+            }
+            
+            if (id) {
+                const phase = data.phases.find(p => p.id === id);
+                phase.name = name;
+                phase.duration = duration;
+                phase.color = color;
+                phase.desc = desc;
+                addNotification('success', `Phase "${name}" modifiée`, 'Maintenant');
+            } else {
+                const newId = Date.now().toString();
+                data.phases.push({id: newId, name, duration, color, desc});
+                addNotification('success', `Phase "${name}" créée`, 'Maintenant');
+            }
+            
+            closePhaseModal();
+            loadPhases();
+            saveData();
+        }
+
+        function deletePhase(id) {
+            const phase = data.phases.find(p => p.id === id);
+            if (confirm(`Supprimer la phase "${phase.name}" ?`)) {
+                data.phases = data.phases.filter(p => p.id !== id);
+                loadPhases();
+                saveData();
+                addNotification('success', `Phase "${phase.name}" supprimée`, 'Maintenant');
             }
         }
 
-        // Update UI
-        function updateUI() {
-            // Calculate MRR
-            data.settings.currentMRR = data.projects.reduce((sum, p) => sum + (p.revenue || 0), 0);
+        // Features
+        function loadFeatures() {
+            const list = document.getElementById('featuresList');
+            list.innerHTML = data.features.map(f => `
+                <div class="bg-white rounded-lg shadow p-4 border-l-4 ${f.type === 'included' ? 'border-green-500' : 'border-yellow-500'}">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold">${f.icon || '⚙️'} ${f.name}</h3>
+                        <div class="flex space-x-1">
+                            <button onclick="editFeature('${f.id}')" class="text-blue-600 hover:text-blue-700">✏️</button>
+                            <button onclick="deleteFeature('${f.id}')" class="text-red-600 hover:text-red-700">🗑️</button>
+                        </div>
+                    </div>
+                    ${f.desc ? `<p class="text-sm text-gray-600 mb-2">${f.desc}</p>` : ''}
+                    <span class="text-xs px-2 py-1 rounded ${f.type === 'included' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                        ${f.type === 'included' ? '✅ Inclus' : `💎 +${f.price || 0}€/mois`}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function openFeatureModal(id = null) {
+            const modal = document.getElementById('featureModal');
+            const title = document.getElementById('featureModalTitle');
             
-            // Update metrics
-            document.getElementById('signedRestaurants').textContent = data.settings.signedRestaurants;
-            document.getElementById('signedGoal').textContent = data.settings.signedGoal;
-            document.getElementById('totalMRR').textContent = data.settings.currentMRR;
-            document.getElementById('activeProjectsCount').textContent = data.projects.length;
+            if (id) {
+                const feature = data.features.find(f => f.id === id);
+                title.textContent = '✏️ Modifier la Feature';
+                document.getElementById('editFeatureId').value = id;
+                document.getElementById('newFeatureName').value = feature.name;
+                document.getElementById('newFeatureIcon').value = feature.icon || '';
+                document.getElementById('newFeatureDesc').value = feature.desc || '';
+                document.getElementById('newFeatureType').value = feature.type;
+                document.getElementById('newFeaturePrice').value = feature.price || '';
+            } else {
+                title.textContent = '⚙️ Nouvelle Feature';
+                document.getElementById('editFeatureId').value = '';
+                document.getElementById('newFeatureName').value = '';
+                document.getElementById('newFeatureIcon').value = '';
+                document.getElementById('newFeatureDesc').value = '';
+                document.getElementById('newFeatureType').value = 'included';
+                document.getElementById('newFeaturePrice').value = '';
+            }
             
-            const completed = data.tasks.filter(t => t.status === 'done').length;
-            const total = data.tasks.length;
-            document.getElementById('completedTasks').textContent = completed;
-            document.getElementById('totalTasks').textContent = total;
+            modal.classList.remove('hidden');
+        }
+
+        function closeFeatureModal() {
+            document.getElementById('featureModal').classList.add('hidden');
+        }
+
+        function editFeature(id) {
+            openFeatureModal(id);
+        }
+
+        function saveFeature() {
+            const id = document.getElementById('editFeatureId').value;
+            const name = document.getElementById('newFeatureName').value;
+            const icon = document.getElementById('newFeatureIcon').value;
+            const desc = document.getElementById('newFeatureDesc').value;
+            const type = document.getElementById('newFeatureType').value;
+            const price = parseInt(document.getElementById('newFeaturePrice').value) || 0;
             
-            // Reload lists
+            if (!name) {
+                alert('Nom obligatoire');
+                return;
+            }
+            
+            if (id) {
+                const feature = data.features.find(f => f.id === id);
+                feature.name = name;
+                feature.icon = icon;
+                feature.desc = desc;
+                feature.type = type;
+                feature.price = price;
+                addNotification('success', `Feature "${name}" modifiée`, 'Maintenant');
+            } else {
+                const newId = Date.now().toString();
+                data.features.push({id: newId, name, icon, desc, type, price});
+                addNotification('success', `Feature "${name}" créée`, 'Maintenant');
+            }
+            
+            closeFeatureModal();
+            loadFeatures();
+            saveData();
+        }
+
+        function deleteFeature(id) {
+            const feature = data.features.find(f => f.id === id);
+            if (confirm(`Supprimer la feature "${feature.name}" ?`)) {
+                data.features = data.features.filter(f => f.id !== id);
+                loadFeatures();
+                saveData();
+                addNotification('success', `Feature "${feature.name}" supprimée`, 'Maintenant');
+            }
+        }
+
+        // Categories
+        function loadCategories() {
+            const list = document.getElementById('categoriesList');
+            list.innerHTML = data.categories.map(c => {
+                const projectCount = data.projects.filter(p => p.categoryId === c.id).length;
+                return `
+                    <div class="bg-white rounded-lg shadow p-4 border-l-4 border-${c.color}-500">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">${c.icon} ${c.name}</h3>
+                            <div class="flex space-x-1">
+                                <button onclick="editCategory('${c.id}')" class="text-blue-600 hover:text-blue-700">✏️</button>
+                                <button onclick="deleteCategory('${c.id}')" class="text-red-600 hover:text-red-700">🗑️</button>
+                            </div>
+                        </div>
+                        ${c.desc ? `<p class="text-sm text-gray-600 mb-2">${c.desc}</p>` : ''}
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs px-2 py-1 rounded bg-${c.color}-100 text-${c.color}-800">
+                                ${projectCount} projet${projectCount > 1 ? 's' : ''}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openCategoryModal(id = null) {
+            const modal = document.getElementById('categoryModal');
+            const title = document.getElementById('categoryModalTitle');
+            
+            if (id) {
+                const category = data.categories.find(c => c.id === id);
+                title.textContent = '✏️ Modifier la Catégorie';
+                document.getElementById('editCategoryId').value = id;
+                document.getElementById('newCategoryName').value = category.name;
+                document.getElementById('newCategoryIcon').value = category.icon || '';
+                document.getElementById('newCategoryColor').value = category.color;
+                document.getElementById('newCategoryDesc').value = category.desc || '';
+            } else {
+                title.textContent = '🏷️ Nouvelle Catégorie';
+                document.getElementById('editCategoryId').value = '';
+                document.getElementById('newCategoryName').value = '';
+                document.getElementById('newCategoryIcon').value = '';
+                document.getElementById('newCategoryColor').value = 'blue';
+                document.getElementById('newCategoryDesc').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.add('hidden');
+        }
+
+        function editCategory(id) {
+            openCategoryModal(id);
+        }
+
+        function saveCategory() {
+            const id = document.getElementById('editCategoryId').value;
+            const name = document.getElementById('newCategoryName').value;
+            const icon = document.getElementById('newCategoryIcon').value;
+            const color = document.getElementById('newCategoryColor').value;
+            const desc = document.getElementById('newCategoryDesc').value;
+            
+            if (!name) {
+                alert('Nom obligatoire');
+                return;
+            }
+            
+            if (id) {
+                const category = data.categories.find(c => c.id === id);
+                category.name = name;
+                category.icon = icon;
+                category.color = color;
+                category.desc = desc;
+                addNotification('success', `Catégorie "${name}" modifiée`, 'Maintenant');
+            } else {
+                const newId = Date.now().toString();
+                data.categories.push({id: newId, name, icon, color, desc});
+                addNotification('success', `Catégorie "${name}" créée`, 'Maintenant');
+            }
+            
+            closeCategoryModal();
+            loadCategories();
             loadProjects();
-            loadTasks();
-            loadNotifications();
+            loadDashboard();
+            saveData();
         }
 
-        // Init
-        window.initApp = async function() {
-            console.log('🚀 Démarrage RestaurantOS');
+        function deleteCategory(id) {
+            const category = data.categories.find(c => c.id === id);
+            const projectCount = data.projects.filter(p => p.categoryId === id).length;
             
-            const loaded = await loadFromFirebase();
-            
-            if (!loaded) {
-                console.log('💡 Mode démo activé');
-                data.projects = [
-                    {id: 'demo-1', name: 'La Bella Vita', contact: 'contact@bellavita.fr', phone: '0612345678', revenue: 400, notes: 'En développement'},
-                    {id: 'demo-2', name: 'Sushi Zen', contact: 'contact@sushizen.fr', phone: '0698765432', revenue: 350, notes: 'Démo prévue'}
-                ];
-                data.tasks = [
-                    {id: 'demo-t1', projectId: 'demo-1', title: 'Finaliser le site', desc: 'Derniers ajustements', assignee: 'Stephen', priority: 'high', status: 'doing', deadline: '2025-12-30'},
-                    {id: 'demo-t2', projectId: 'demo-2', title: 'Préparer la démo', desc: 'Présentation client', assignee: 'Eva', priority: 'urgent', status: 'todo', deadline: '2025-12-28'}
-                ];
+            if (projectCount > 0) {
+                alert(`Impossible de supprimer cette catégorie car ${projectCount} projet(s) l'utilisent.`);
+                return;
             }
+            
+            if (confirm(`Supprimer la catégorie "${category.name}" ?`)) {
+                data.categories = data.categories.filter(c => c.id !== id);
+                loadCategories();
+                saveData();
+                addNotification('success', `Catégorie "${category.name}" supprimée`, 'Maintenant');
+            }
+        }
+
+        // Analytics
+        function loadAnalytics() {
+            updateDashboardMetrics();
+            
+            // Revenue breakdown
+            const breakdown = document.getElementById('revenueBreakdown');
+            const total = data.revenueBreakdown.reduce((sum, r) => sum + (r.amount || 0), 0);
+            
+            breakdown.innerHTML = data.revenueBreakdown.length > 0 ? data.revenueBreakdown.map(r => `
+                <div class="flex justify-between items-center p-2 border-b hover:bg-gray-50">
+                    <span class="font-medium">${r.category}</span>
+                    <span class="text-blue-600 font-bold">${r.amount}€/mois (${total > 0 ? Math.round((r.amount / total) * 100) : 0}%)</span>
+                </div>
+            `).join('') + `
+                <div class="flex justify-between items-center p-2 bg-gray-100 font-bold mt-2">
+                    <span>Total</span>
+                    <span class="text-green-600">${total}€/mois</span>
+                </div>
+            ` : '<div class="p-4 text-gray-500 text-center text-sm">Aucune répartition configurée</div>';
+            
+            // Custom metrics
+            const metrics = document.getElementById('customMetrics');
+            metrics.innerHTML = data.customMetrics?.length > 0 ? data.customMetrics.map(m => `
+                <div class="flex justify-between items-center p-3 border rounded hover:bg-gray-50">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">${m.icon}</span>
+                        <span class="font-medium">${m.name}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-blue-600">${m.value}${m.unit}</span>
+                        <button onclick="editMetric('${m.id}')" class="text-blue-600 hover:text-blue-700">✏️</button>
+                        <button onclick="deleteMetric('${m.id}')" class="text-red-600 hover:text-red-700">🗑️</button>
+                    </div>
+                </div>
+            `).join('') : '<div class="text-gray-500 text-sm text-center">Aucune métrique personnalisée</div>';
+        }
+
+        function openRevenueModal() {
+            const inputs = document.getElementById('revenueInputs');
+            inputs.innerHTML = data.revenueBreakdown.map((r, i) => `
+                <div class="flex space-x-2 items-center">
+                    <input type="text" value="${r.category}" placeholder="Catégorie" class="flex-1 border rounded px-3 py-2 revenue-cat" data-index="${i}">
+                    <input type="number" value="${r.amount}" placeholder="Montant" class="w-24 border rounded px-3 py-2 revenue-amt" data-index="${i}">
+                    <button onclick="removeRevenueCategory(${i})" class="text-red-600 hover:text-red-700">🗑️</button>
+                </div>
+            `).join('');
+            document.getElementById('revenueModal').classList.remove('hidden');
+        }
+
+        function closeRevenueModal() {
+            document.getElementById('revenueModal').classList.add('hidden');
+        }
+
+        function addRevenueCategory() {
+            const inputs = document.getElementById('revenueInputs');
+            const index = document.querySelectorAll('.revenue-cat').length;
+            const div = document.createElement('div');
+            div.className = 'flex space-x-2 items-center';
+            div.innerHTML = `
+                <input type="text" placeholder="Catégorie" class="flex-1 border rounded px-3 py-2 revenue-cat" data-index="${index}">
+                <input type="number" placeholder="Montant" class="w-24 border rounded px-3 py-2 revenue-amt" data-index="${index}">
+                <button onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-700">🗑️</button>
+            `;
+            inputs.appendChild(div);
+        }
+
+        function removeRevenueCategory(index) {
+            data.revenueBreakdown.splice(index, 1);
+            openRevenueModal();
+        }
+
+        function saveRevenueBreakdown() {
+            const categories = document.querySelectorAll('.revenue-cat');
+            const amounts = document.querySelectorAll('.revenue-amt');
+            
+            data.revenueBreakdown = [];
+            categories.forEach((cat, i) => {
+                const category = cat.value.trim();
+                const amount = parseInt(amounts[i].value) || 0;
+                if (category && amount > 0) {
+                    data.revenueBreakdown.push({category, amount});
+                }
+            });
+            
+            closeRevenueModal();
+            loadAnalytics();
+            saveData();
+            addNotification('success', 'Répartition mise à jour', 'Maintenant');
+        }
+
+        function openMetricModal(id = null) {
+            const modal = document.getElementById('metricModal');
+            const title = document.getElementById('metricModalTitle');
+            
+            if (id) {
+                const metric = data.customMetrics.find(m => m.id === id);
+                title.textContent = '✏️ Modifier la Métrique';
+                document.getElementById('editMetricId').value = id;
+                document.getElementById('newMetricName').value = metric.name;
+                document.getElementById('newMetricValue').value = metric.value;
+                document.getElementById('newMetricUnit').value = metric.unit || '';
+                document.getElementById('newMetricIcon').value = metric.icon;
+            } else {
+                title.textContent = '📊 Nouvelle Métrique';
+                document.getElementById('editMetricId').value = '';
+                document.getElementById('newMetricName').value = '';
+                document.getElementById('newMetricValue').value = '';
+                document.getElementById('newMetricUnit').value = '';
+                document.getElementById('newMetricIcon').value = '📊';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeMetricModal() {
+            document.getElementById('metricModal').classList.add('hidden');
+        }
+
+        function editMetric(id) {
+            openMetricModal(id);
+        }
+
+        function saveMetric() {
+            const id = document.getElementById('editMetricId').value;
+            const name = document.getElementById('newMetricName').value;
+            const value = document.getElementById('newMetricValue').value;
+            const unit = document.getElementById('newMetricUnit').value;
+            const icon = document.getElementById('newMetricIcon').value;
+            
+            if (!name || !value) {
+                alert('Nom et valeur obligatoires');
+                return;
+            }
+            
+            if (!data.customMetrics) data.customMetrics = [];
+            
+            if (id) {
+                const metric = data.customMetrics.find(m => m.id === id);
+                metric.name = name;
+                metric.value = value;
+                metric.unit = unit;
+                metric.icon = icon;
+                addNotification('success', `Métrique "${name}" modifiée`, 'Maintenant');
+            } else {
+                const newId = Date.now().toString();
+                data.customMetrics.push({id: newId, name, value, unit, icon});
+                addNotification('success', `Métrique "${name}" créée`, 'Maintenant');
+            }
+            
+            closeMetricModal();
+            loadAnalytics();
+            saveData();
+        }
+
+        function deleteMetric(id) {
+            const metric = data.customMetrics.find(m => m.id === id);
+            if (confirm(`Supprimer la métrique "${metric.name}" ?`)) {
+                data.customMetrics = data.customMetrics.filter(m => m.id !== id);
+                loadAnalytics();
+                saveData();
+                addNotification('success', `Métrique "${metric.name}" supprimée`, 'Maintenant');
+            }
+        }
+
+        // Initialize
+        window.initApp = async function() {
+            await loadData();
             
             if (data.settings.darkMode) {
                 document.body.classList.add('dark');
                 document.getElementById('darkModeIcon').textContent = '☀️';
             }
             
-            updateUI();
-            console.log('✅ RestaurantOS prêt ! Projets:', data.projects.length, '| Tâches:', data.tasks.length);
+            loadDashboard();
+            loadProjects();
+            loadTasks();
+            loadPhases();
+            loadFeatures();
+            loadCategories();
+            loadAnalytics();
+            loadNotifications();
         }
 
-        // Close modals on escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeProjectModal();
-                closeTaskModal();
-                document.getElementById('notificationsPanel').classList.add('hidden');
-            }
-        });
-
-        // Close notifications panel when clicking outside
+        // Close modals on outside click
         document.addEventListener('click', (e) => {
-            const panel = document.getElementById('notificationsPanel');
-            const btn = e.target.closest('button[onclick="toggleNotifications()"]');
-            if (!panel.contains(e.target) && !btn && !panel.classList.contains('hidden')) {
-                panel.classList.add('hidden');
+            const notifPanel = document.getElementById('notificationsPanel');
+            const notifBtn = e.target.closest('button[onclick="toggleNotifications()"]');
+            if (!notifPanel.contains(e.target) && !notifBtn && !notifPanel.classList.contains('hidden')) {
+                notifPanel.classList.add('hidden');
             }
         });
     </script>
