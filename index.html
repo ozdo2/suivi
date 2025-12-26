@@ -278,21 +278,21 @@
             
             <div class="grid md:grid-cols-3 gap-6 mb-6">
                 <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
+                    <div class="text-sm opacity-90 mb-2">Revenus Initiaux</div>
+                    <div class="text-3xl font-bold"><span id="analyticsInitial">0</span>€</div>
+                    <div class="text-sm mt-2 opacity-75">Total des contrats signés</div>
+                </div>
+
+                <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
                     <div class="text-sm opacity-90 mb-2">MRR Total</div>
                     <div class="text-3xl font-bold"><span id="analyticsMRR">0</span>€</div>
                     <div class="text-sm mt-2 opacity-75">Revenus mensuels récurrents</div>
                 </div>
 
-                <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
                     <div class="text-sm opacity-90 mb-2">ARR (Annuel)</div>
                     <div class="text-3xl font-bold"><span id="analyticsARR">0</span>€</div>
                     <div class="text-sm mt-2 opacity-75">MRR × 12</div>
-                </div>
-
-                <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
-                    <div class="text-sm opacity-90 mb-2">Revenu moyen</div>
-                    <div class="text-3xl font-bold"><span id="analyticsAvg">0</span>€</div>
-                    <div class="text-sm mt-2 opacity-75">Par restaurant actif</div>
                 </div>
             </div>
 
@@ -339,7 +339,12 @@
                     <select id="newProjectCategory" class="w-full border rounded px-3 py-2">
                         <option value="">Sélectionner une catégorie</option>
                     </select>
-                    <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2">
+                    <div class="border-t pt-3">
+                        <label class="text-sm font-semibold text-gray-700 mb-2 block">💰 Finances</label>
+                        <input id="newProjectInitialPrice" type="number" placeholder="Prix initial du contrat (€) *" class="w-full border rounded px-3 py-2 mb-2">
+                        <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel récurrent (€)" class="w-full border rounded px-3 py-2">
+                        <p class="text-xs text-gray-500 mt-1">Prix initial = paiement unique à la signature</p>
+                    </div>
                     <input id="newProjectProgress" type="number" min="0" max="100" placeholder="Progression (%)" class="w-full border rounded px-3 py-2">
                     <textarea id="newProjectNotes" placeholder="Notes..." class="w-full border rounded px-3 py-2 h-20"></textarea>
                 </div>
@@ -732,11 +737,12 @@
             document.getElementById('analyticsMRR').textContent = data.settings.currentMRR || 0;
             document.getElementById('analyticsARR').textContent = (data.settings.currentMRR || 0) * 12;
             
+            // Calculate total initial revenues
+            const totalInitial = data.projects.reduce((sum, p) => sum + (parseInt(p.initialPrice) || 0), 0);
+            document.getElementById('analyticsInitial').textContent = totalInitial;
+            
             const activeProjects = data.projects.filter(p => p.categoryId !== data.categories.find(c => c.name === 'Terminés')?.id);
             document.getElementById('activeProjectsCount').textContent = activeProjects.length;
-            
-            const avgRevenue = activeProjects.length > 0 ? Math.round(data.settings.currentMRR / activeProjects.length) : 0;
-            document.getElementById('analyticsAvg').textContent = avgRevenue;
             
             const completed = data.tasks.filter(t => t.status === 'done').length;
             const total = data.tasks.length;
@@ -872,7 +878,8 @@
                         <div class="text-sm space-y-1 mb-3">
                             <div class="text-gray-600">📧 ${p.contact}</div>
                             <div class="text-gray-600">📱 ${p.phone || 'N/A'}</div>
-                            <div class="font-semibold text-green-600">💰 ${p.revenue || 0}€/mois</div>
+                            <div class="font-semibold text-blue-600">💵 Prix initial: ${p.initialPrice || 0}€</div>
+                            <div class="font-semibold text-green-600">💰 MRR: ${p.revenue || 0}€/mois</div>
                             ${p.progress ? `<div class="text-gray-600">📊 Progression: ${p.progress}%</div>` : ''}
                         </div>
                         ${p.notes ? `<div class="text-xs text-gray-500 mb-3 italic">${p.notes}</div>` : ''}
@@ -905,6 +912,7 @@
                 document.getElementById('newProjectContact').value = project.contact;
                 document.getElementById('newProjectPhone').value = project.phone || '';
                 document.getElementById('newProjectCategory').value = project.categoryId || '';
+                document.getElementById('newProjectInitialPrice').value = project.initialPrice || '';
                 document.getElementById('newProjectRevenue').value = project.revenue || '';
                 document.getElementById('newProjectProgress').value = project.progress || '';
                 document.getElementById('newProjectNotes').value = project.notes || '';
@@ -915,6 +923,7 @@
                 document.getElementById('newProjectContact').value = '';
                 document.getElementById('newProjectPhone').value = '';
                 document.getElementById('newProjectCategory').value = '';
+                document.getElementById('newProjectInitialPrice').value = '';
                 document.getElementById('newProjectRevenue').value = '';
                 document.getElementById('newProjectProgress').value = '';
                 document.getElementById('newProjectNotes').value = '';
@@ -941,6 +950,7 @@
             const contact = document.getElementById('newProjectContact').value;
             const phone = document.getElementById('newProjectPhone').value;
             const categoryId = document.getElementById('newProjectCategory').value;
+            const initialPrice = parseInt(document.getElementById('newProjectInitialPrice').value) || 0;
             const revenue = parseInt(document.getElementById('newProjectRevenue').value) || 0;
             const progress = parseInt(document.getElementById('newProjectProgress').value) || 0;
             const notes = document.getElementById('newProjectNotes').value;
@@ -950,19 +960,25 @@
                 return;
             }
             
+            if (!initialPrice) {
+                alert('Le prix initial du contrat est obligatoire');
+                return;
+            }
+            
             if (id) {
                 const project = data.projects.find(p => p.id === id);
                 project.name = name;
                 project.contact = contact;
                 project.phone = phone;
                 project.categoryId = categoryId;
+                project.initialPrice = initialPrice;
                 project.revenue = revenue;
                 project.progress = progress;
                 project.notes = notes;
                 addNotification('success', `Restaurant "${name}" modifié`, 'Maintenant');
             } else {
                 const newId = Date.now().toString();
-                data.projects.push({id: newId, name, contact, phone, categoryId, revenue, progress, notes});
+                data.projects.push({id: newId, name, contact, phone, categoryId, initialPrice, revenue, progress, notes});
                 addNotification('success', `Restaurant "${name}" créé`, 'Maintenant');
             }
             
