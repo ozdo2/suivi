@@ -546,8 +546,10 @@
             try {
                 await window.dbSet(window.dbRef(window.db, 'restaurantOS'), data);
                 recalculateMetrics();
+                console.log('✅ Données sauvegardées dans Firebase');
             } catch (e) {
-                console.error('Erreur:', e);
+                console.error('❌ Erreur sauvegarde:', e);
+                alert('Erreur de sauvegarde. Vérifiez votre connexion.');
             }
         }
 
@@ -556,20 +558,43 @@
                 const snapshot = await window.dbGet(window.dbRef(window.db, 'restaurantOS'));
                 if (snapshot.exists()) {
                     const loadedData = snapshot.val();
-                    // Merge with defaults, ensuring arrays are properly loaded
-                    data.settings = {...data.settings, ...loadedData.settings};
-                    data.projects = loadedData.projects || [];
-                    data.tasks = loadedData.tasks || [];
-                    data.phases = loadedData.phases || [];
-                    data.features = loadedData.features || [];
-                    data.categories = loadedData.categories || data.categories;
-                    data.notifications = loadedData.notifications || [];
-                    data.revenueBreakdown = loadedData.revenueBreakdown || [];
-                    data.customMetrics = loadedData.customMetrics || [];
+                    console.log('📥 Données chargées:', loadedData);
+                    
+                    // Load each property individually to ensure arrays are preserved
+                    data.settings = loadedData.settings || data.settings;
+                    data.projects = Array.isArray(loadedData.projects) ? loadedData.projects : [];
+                    data.tasks = Array.isArray(loadedData.tasks) ? loadedData.tasks : [];
+                    data.phases = Array.isArray(loadedData.phases) ? loadedData.phases : [];
+                    data.features = Array.isArray(loadedData.features) ? loadedData.features : [];
+                    data.categories = Array.isArray(loadedData.categories) ? loadedData.categories : data.categories;
+                    data.notifications = Array.isArray(loadedData.notifications) ? loadedData.notifications : [];
+                    data.revenueBreakdown = Array.isArray(loadedData.revenueBreakdown) ? loadedData.revenueBreakdown : [];
+                    data.customMetrics = Array.isArray(loadedData.customMetrics) ? loadedData.customMetrics : [];
+                    
+                    console.log('✅ Projets chargés:', data.projects.length);
+                    console.log('✅ Tâches chargées:', data.tasks.length);
+                    console.log('✅ Phases chargées:', data.phases.length);
+                    console.log('✅ Features chargées:', data.features.length);
+                } else {
+                    console.log('📝 Aucune donnée existante, initialisation...');
+                    // Initialize with demo data
+                    data.projects = [
+                        {id: Date.now() + '-1', name: 'La Bella Vita', contact: 'contact@bellavita.fr', phone: '0612345678', categoryId: '2', revenue: 400, progress: 65, notes: 'En cours de développement'},
+                        {id: Date.now() + '-2', name: 'Sushi Zen', contact: 'contact@sushizen.fr', phone: '0698765432', categoryId: '1', revenue: 350, progress: 20, notes: 'Premier contact établi'},
+                        {id: Date.now() + '-3', name: 'Le Gourmet', contact: 'contact@legourmet.fr', phone: '0687654321', categoryId: '3', revenue: 450, progress: 100, notes: 'Projet livré'}
+                    ];
+                    
+                    data.tasks = [
+                        {id: Date.now() + '-t1', projectId: data.projects[0].id, title: 'Finaliser prompt IA', desc: 'Optimiser les réponses pour les allergies', assignee: 'Stephen', priority: 'high', deadline: '2025-12-30', status: 'doing'},
+                        {id: Date.now() + '-t2', projectId: data.projects[1].id, title: 'Déployer site', desc: 'Mise en production sur Vercel', assignee: 'Eva', priority: 'urgent', deadline: '2025-12-28', status: 'todo'}
+                    ];
+                    
+                    await saveData();
                 }
                 recalculateMetrics();
             } catch (e) {
-                console.error('Erreur:', e);
+                console.error('❌ Erreur chargement:', e);
+                alert('Erreur de chargement des données.');
             }
         }
 
@@ -842,13 +867,28 @@
 
         function deleteProject(id) {
             const project = data.projects.find(p => p.id === id);
-            if (confirm(`Supprimer "${project.name}" ?\n\nToutes les tâches associées seront aussi supprimées.`)) {
+            if (!project) {
+                console.error('Projet non trouvé:', id);
+                return;
+            }
+            
+            if (confirm(`❌ Supprimer "${project.name}" ?\n\n⚠️ Toutes les tâches associées seront aussi supprimées.\nCette action est irréversible.`)) {
+                console.log('🗑️ Suppression du projet:', project.name);
+                
+                // Remove project
                 data.projects = data.projects.filter(p => p.id !== id);
+                
+                // Remove associated tasks
+                const tasksToDelete = data.tasks.filter(t => t.projectId === id);
                 data.tasks = data.tasks.filter(t => t.projectId !== id);
+                
+                console.log('✅ Projet supprimé');
+                console.log(`✅ ${tasksToDelete.length} tâche(s) associée(s) supprimée(s)`);
+                
                 loadProjects();
                 loadDashboard();
                 saveData();
-                addNotification('success', `Restaurant "${project.name}" supprimé`, 'Maintenant');
+                addNotification('success', `Restaurant "${project.name}" et ${tasksToDelete.length} tâche(s) supprimés`, 'Maintenant');
             }
         }
 
@@ -1246,11 +1286,75 @@
 
         function deletePhase(id) {
             const phase = data.phases.find(p => p.id === id);
-            if (confirm(`Supprimer la phase "${phase.name}" ?`)) {
+            if (!phase) {
+                console.error('Phase non trouvée:', id);
+                return;
+            }
+            
+            if (confirm(`❌ Supprimer la phase "${phase.name}" ?\n\nCette action est irréversible.`)) {
+                console.log('🗑️ Suppression de la phase:', phase.name);
                 data.phases = data.phases.filter(p => p.id !== id);
+                console.log('✅ Phase supprimée. Total phases:', data.phases.length);
                 loadPhases();
                 saveData();
                 addNotification('success', `Phase "${phase.name}" supprimée`, 'Maintenant');
+            }
+        }
+
+        function deleteFeature(id) {
+            const feature = data.features.find(f => f.id === id);
+            if (!feature) {
+                console.error('Feature non trouvée:', id);
+                return;
+            }
+            
+            if (confirm(`❌ Supprimer la feature "${feature.name}" ?\n\nCette action est irréversible.`)) {
+                console.log('🗑️ Suppression de la feature:', feature.name);
+                data.features = data.features.filter(f => f.id !== id);
+                console.log('✅ Feature supprimée. Total features:', data.features.length);
+                loadFeatures();
+                saveData();
+                addNotification('success', `Feature "${feature.name}" supprimée`, 'Maintenant');
+            }
+        }
+
+        function quickDeleteTask(id) {
+            const task = data.tasks.find(t => t.id === id);
+            if (!task) {
+                console.error('Tâche non trouvée:', id);
+                return;
+            }
+            
+            if (confirm(`❌ Supprimer "${task.title}" ?`)) {
+                console.log('🗑️ Suppression de la tâche:', task.title);
+                data.tasks = data.tasks.filter(t => t.id !== id);
+                console.log('✅ Tâche supprimée. Total tâches:', data.tasks.length);
+                loadTasks();
+                loadDashboard();
+                saveData();
+                addNotification('success', 'Tâche supprimée', 'Maintenant');
+            }
+        }
+
+        function deleteTaskFromModal() {
+            const id = document.getElementById('editTaskId').value;
+            if (!id) return;
+            
+            const task = data.tasks.find(t => t.id === id);
+            if (!task) {
+                console.error('Tâche non trouvée:', id);
+                return;
+            }
+            
+            if (confirm(`❌ Supprimer la tâche "${task.title}" ?\n\nCette action est irréversible.`)) {
+                console.log('🗑️ Suppression de la tâche:', task.title);
+                data.tasks = data.tasks.filter(t => t.id !== id);
+                console.log('✅ Tâche supprimée. Total tâches:', data.tasks.length);
+                closeTaskModal();
+                loadTasks();
+                loadDashboard();
+                saveData();
+                addNotification('success', 'Tâche supprimée', 'Maintenant');
             }
         }
 
@@ -1622,6 +1726,8 @@
 
         // Initialize
         window.initApp = async function() {
+            console.log('🚀 Initialisation de RestaurantOS...');
+            
             await loadData();
             
             if (data.settings.darkMode) {
@@ -1629,6 +1735,7 @@
                 document.getElementById('darkModeIcon').textContent = '☀️';
             }
             
+            console.log('📊 Chargement des interfaces...');
             loadDashboard();
             loadProjects();
             loadTasks();
@@ -1637,7 +1744,51 @@
             loadCategories();
             loadAnalytics();
             loadNotifications();
+            
+            console.log('✅ RestaurantOS initialisé avec succès !');
+            console.log('📈 État actuel:');
+            console.log('  - Projets:', data.projects.length);
+            console.log('  - Tâches:', data.tasks.length);
+            console.log('  - Phases:', data.phases.length);
+            console.log('  - Features:', data.features.length);
         }
+
+        // Debug function to reset data
+        window.resetAllData = async function() {
+            if (confirm('⚠️ ATTENTION !\n\nCela va SUPPRIMER TOUTES LES DONNÉES.\n\nÊtes-vous absolument sûr ?')) {
+                if (confirm('Dernière confirmation : Supprimer toutes les données ?')) {
+                    data = {
+                        settings: {
+                            signedRestaurants: 0,
+                            signedGoal: 5,
+                            darkMode: true
+                        },
+                        projects: [],
+                        tasks: [],
+                        phases: [],
+                        features: [],
+                        categories: [
+                            {id: '1', name: 'Démarchage', icon: '📞', color: 'yellow', desc: 'Prospects en phase de contact'},
+                            {id: '2', name: 'En Production', icon: '🔨', color: 'blue', desc: 'Sites en cours de développement'},
+                            {id: '3', name: 'Signés', icon: '✅', color: 'green', desc: 'Contrats signés et actifs'},
+                            {id: '4', name: 'Modifications', icon: '🔄', color: 'orange', desc: 'Demandes de changements'},
+                            {id: '5', name: 'Terminés', icon: '🎉', color: 'purple', desc: 'Projets livrés'},
+                            {id: '6', name: 'En Pause', icon: '⏸️', color: 'gray', desc: 'Projets mis en attente'}
+                        ],
+                        notifications: [],
+                        revenueBreakdown: [],
+                        customMetrics: []
+                    };
+                    await saveData();
+                    window.location.reload();
+                }
+            }
+        }
+
+        // Add console command info
+        console.log('💡 Commandes de debug disponibles:');
+        console.log('  - resetAllData() : Supprimer toutes les données');
+        console.log('  - data : Voir toutes les données actuelles');
 
         // Close modals on outside click
         document.addEventListener('click', (e) => {
