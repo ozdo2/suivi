@@ -9,7 +9,8 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, get, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, set, get, onValue, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         const firebaseConfig = {
             apiKey: "AIzaSyDOXDHOQj2cADZ9ai2uHzQ1lE8HsX3P3Hg",
@@ -24,10 +25,16 @@
         
         const app = initializeApp(firebaseConfig);
         window.db = getDatabase(app);
+        window.auth = getAuth(app);
         window.dbRef = ref;
         window.dbSet = set;
         window.dbGet = get;
         window.dbOnValue = onValue;
+        window.dbUpdate = update;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.signOut = signOut;
+        window.onAuthStateChanged = onAuthStateChanged;
         
         window.addEventListener('load', () => {
             setTimeout(() => {
@@ -60,399 +67,431 @@
         }
         .dark .task-card { background-color: #1e293b !important; }
         .dark .hover\:bg-gray-50:hover { background-color: #334155 !important; }
-        
-        .editable-field {
-            border: 2px solid transparent;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .editable-field:hover {
-            border-color: #3b82f6;
-            background-color: #eff6ff;
-        }
-        
-        .category-badge {
-            transition: all 0.2s;
-        }
-        .category-badge:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 py-3">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-8">
-                    <h1 class="text-xl font-bold text-blue-600">🍽️ RestaurantOS</h1>
-                    <div class="hidden md:flex space-x-4">
-                        <button onclick="showPage('dashboard')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Dashboard</button>
-                        <button onclick="showPage('projects')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Projets</button>
-                        <button onclick="showPage('tasks')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Tâches</button>
-                        <button onclick="showPage('phases')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Phases</button>
-                        <button onclick="showPage('features')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Features</button>
-                        <button onclick="showPage('analytics')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Analytics</button>
-                        <button onclick="showPage('categories')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Catégories</button>
-                    </div>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-blue-600 mb-2">🍽️ RestaurantOS</h1>
+                <p class="text-gray-600">Connectez-vous pour continuer</p>
+            </div>
+            
+            <div id="loginForm">
+                <div class="space-y-4">
+                    <input id="loginEmail" type="email" placeholder="Email" class="w-full border rounded-lg px-4 py-3">
+                    <input id="loginPassword" type="password" placeholder="Mot de passe" class="w-full border rounded-lg px-4 py-3">
+                    <button onclick="login()" class="w-full bg-blue-600 text-white rounded-lg py-3 font-semibold hover:bg-blue-700">
+                        Se connecter
+                    </button>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button onclick="toggleDarkMode()" class="p-2 hover:bg-gray-100 rounded">
-                        <span id="darkModeIcon">🌙</span>
+                <div class="mt-4 text-center">
+                    <button onclick="showSignup()" class="text-blue-600 hover:underline text-sm">
+                        Pas encore de compte ? S'inscrire
                     </button>
-                    <button onclick="toggleNotifications()" class="relative p-2 hover:bg-gray-100 rounded">
-                        🔔
-                        <span id="notifBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-                    </button>
-                    <span class="text-sm text-gray-600">👤 Stephen</span>
                 </div>
             </div>
-        </div>
-    </nav>
-
-    <!-- Notifications Panel -->
-    <div id="notificationsPanel" class="hidden fixed right-4 top-16 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
-        <div class="p-4 border-b sticky top-0 bg-white">
-            <div class="flex justify-between items-center">
-                <h3 class="font-semibold">Notifications</h3>
-                <button onclick="clearAllNotifications()" class="text-xs text-red-600 hover:text-red-700">Tout effacer</button>
+            
+            <div id="signupForm" class="hidden">
+                <div class="space-y-4">
+                    <input id="signupName" type="text" placeholder="Nom (Stephen ou Eva)" class="w-full border rounded-lg px-4 py-3">
+                    <input id="signupEmail" type="email" placeholder="Email" class="w-full border rounded-lg px-4 py-3">
+                    <input id="signupPassword" type="password" placeholder="Mot de passe (min 6 caractères)" class="w-full border rounded-lg px-4 py-3">
+                    <button onclick="signup()" class="w-full bg-green-600 text-white rounded-lg py-3 font-semibold hover:bg-green-700">
+                        S'inscrire
+                    </button>
+                </div>
+                <div class="mt-4 text-center">
+                    <button onclick="showLogin()" class="text-blue-600 hover:underline text-sm">
+                        Déjà un compte ? Se connecter
+                    </button>
+                </div>
             </div>
+            
+            <div id="authError" class="hidden mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm"></div>
         </div>
-        <div id="notificationsList" class="divide-y"></div>
     </div>
 
-    <!-- Dashboard Page -->
-    <div id="dashboard" class="page max-w-7xl mx-auto px-4 py-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600">Restaurants signés</div>
-                <div class="flex items-center justify-center space-x-2 mt-2">
-                    <button onclick="changeSignedRestaurants(-1)" class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 text-lg">−</button>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-blue-600">
-                            <span id="signedRestaurants">0</span>/<span id="signedGoal">5</span>
+    <!-- Main App (hidden until logged in) -->
+    <div id="mainApp" class="hidden">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-8">
+                        <h1 class="text-xl font-bold text-blue-600">🍽️ RestaurantOS</h1>
+                        <div class="hidden md:flex space-x-4">
+                            <button onclick="showPage('dashboard')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Dashboard</button>
+                            <button onclick="showPage('projects')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Projets</button>
+                            <button onclick="showPage('tasks')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Tâches</button>
+                            <button onclick="showPage('phases')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Phases</button>
+                            <button onclick="showPage('features')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Features</button>
+                            <button onclick="showPage('analytics')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Analytics</button>
+                            <button onclick="showPage('categories')" class="nav-btn px-3 py-2 rounded hover:bg-gray-100">Catégories</button>
                         </div>
                     </div>
-                    <button onclick="changeSignedRestaurants(1)" class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 text-lg">+</button>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="toggleDarkMode()" class="p-2 hover:bg-gray-100 rounded">
+                            <span id="darkModeIcon">🌙</span>
+                        </button>
+                        <button onclick="toggleNotifications()" class="relative p-2 hover:bg-gray-100 rounded">
+                            🔔
+                            <span id="notifBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                        </button>
+                        <span class="text-sm text-gray-600">👤 <span id="currentUserName">Utilisateur</span></span>
+                        <button onclick="logout()" class="text-sm text-red-600 hover:text-red-700 px-3 py-1 border border-red-600 rounded hover:bg-red-50">
+                            Déconnexion
+                        </button>
+                    </div>
                 </div>
-                <div class="text-xs text-gray-500 mt-1 text-center">Objectif mois</div>
             </div>
-            
-            <div class="bg-white p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600">Revenu MRR Total</div>
-                <div class="text-center mt-2">
-                    <div class="text-2xl font-bold text-green-600"><span id="totalMRR">0</span>€</div>
-                    <div class="text-xs text-gray-500 mt-1">Calculé automatiquement</div>
+        </nav>
+
+        <!-- Notifications Panel -->
+        <div id="notificationsPanel" class="hidden fixed right-4 top-16 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
+            <div class="p-4 border-b sticky top-0 bg-white">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-semibold">Notifications</h3>
+                    <button onclick="clearAllNotifications()" class="text-xs text-red-600 hover:text-red-700">Tout effacer</button>
                 </div>
             </div>
-            
-            <div class="bg-white p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600">Tâches complétées</div>
-                <div class="text-2xl font-bold text-purple-600 text-center mt-2">
-                    <span id="completedTasks">0</span>/<span id="totalTasks">0</span>
+            <div id="notificationsList" class="divide-y"></div>
+        </div>
+
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page max-w-7xl mx-auto px-4 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <div class="text-sm text-gray-600">Restaurants signés</div>
+                    <div class="flex items-center justify-center space-x-2 mt-2">
+                        <button onclick="changeSignedRestaurants(-1)" class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 text-lg">−</button>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">
+                                <span id="signedRestaurants">0</span>/<span id="signedGoal">5</span>
+                            </div>
+                        </div>
+                        <button onclick="changeSignedRestaurants(1)" class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 text-lg">+</button>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1 text-center">Objectif mois</div>
                 </div>
-                <div class="text-xs text-gray-500 mt-1 text-center"><span id="completionPercent">0</span>%</div>
+                
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <div class="text-sm text-gray-600">Revenu MRR Total</div>
+                    <div class="text-center mt-2">
+                        <div class="text-2xl font-bold text-green-600"><span id="totalMRR">0</span>€</div>
+                        <div class="text-xs text-gray-500 mt-1">Calculé automatiquement</div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <div class="text-sm text-gray-600">Tâches complétées</div>
+                    <div class="text-2xl font-bold text-purple-600 text-center mt-2">
+                        <span id="completedTasks">0</span>/<span id="totalTasks">0</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1 text-center"><span id="completionPercent">0</span>%</div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <div class="text-sm text-gray-600">Projets actifs</div>
+                    <div class="text-2xl font-bold text-orange-600 text-center mt-2"><span id="activeProjectsCount">0</span></div>
+                    <div class="text-xs text-gray-500 mt-1 text-center">En cours</div>
+                </div>
             </div>
+
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="p-4 border-b">
+                    <h2 class="text-lg font-semibold">🚀 Projets par Catégorie</h2>
+                </div>
+                <div id="projectsByCategory" class="p-4"></div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b">
+                    <h2 class="text-lg font-semibold">✅ Tâches Prioritaires</h2>
+                </div>
+                <div id="urgentTasks" class="p-4 space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- Projects Page -->
+        <div id="projects" class="page hidden max-w-7xl mx-auto px-4 py-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">📁 Tous les Projets</h2>
+                <div class="flex space-x-2">
+                    <select id="filterCategory" onchange="loadProjects()" class="border rounded px-3 py-2 bg-white">
+                        <option value="">Toutes les catégories</option>
+                    </select>
+                    <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouveau Restaurant</button>
+                </div>
+            </div>
+            <div id="projectsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Tasks Page -->
+        <div id="tasks" class="page hidden max-w-7xl mx-auto px-4 py-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">📋 Gestion des Tâches</h2>
+                <button onclick="openTaskModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Tâche</button>
+            </div>
+            <div id="tasksBoard" class="grid md:grid-cols-4 gap-4">
+                <div class="bg-gray-100 rounded-lg p-4">
+                    <h3 class="font-semibold mb-3">📝 À faire (<span id="todoCount">0</span>)</h3>
+                    <div id="todoColumn" class="space-y-2"></div>
+                </div>
+                <div class="bg-blue-100 rounded-lg p-4">
+                    <h3 class="font-semibold mb-3">🔄 En cours (<span id="doingCount">0</span>)</h3>
+                    <div id="doingColumn" class="space-y-2"></div>
+                </div>
+                <div class="bg-red-100 rounded-lg p-4">
+                    <h3 class="font-semibold mb-3">⚠️ Bloquées (<span id="blockedCount">0</span>)</h3>
+                    <div id="blockedColumn" class="space-y-2"></div>
+                </div>
+                <div class="bg-green-100 rounded-lg p-4">
+                    <h3 class="font-semibold mb-3">✅ Terminées (<span id="doneCount">0</span>)</h3>
+                    <div id="doneColumn" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phases Page -->
+        <div id="phases" class="page hidden max-w-7xl mx-auto px-4 py-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">🎯 Gestion des Phases</h2>
+                <button onclick="openPhaseModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Phase</button>
+            </div>
+            <div id="phasesList" class="space-y-4"></div>
+        </div>
+
+        <!-- Features Page -->
+        <div id="features" class="page hidden max-w-7xl mx-auto px-4 py-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">⚙️ Features Restaurant</h2>
+                <button onclick="openFeatureModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Feature</button>
+            </div>
+            <div id="featuresList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Analytics Page -->
+        <div id="analytics" class="page hidden max-w-7xl mx-auto px-4 py-6">
+            <h2 class="text-2xl font-bold mb-6">📈 Analytics Business</h2>
             
-            <div class="bg-white p-4 rounded-lg shadow">
-                <div class="text-sm text-gray-600">Projets actifs</div>
-                <div class="text-2xl font-bold text-orange-600 text-center mt-2"><span id="activeProjectsCount">0</span></div>
-                <div class="text-xs text-gray-500 mt-1 text-center">En cours</div>
+            <div class="grid md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
+                    <div class="text-sm opacity-90 mb-2">MRR Total</div>
+                    <div class="text-3xl font-bold"><span id="analyticsMRR">0</span>€</div>
+                    <div class="text-sm mt-2 opacity-75">Revenus mensuels récurrents</div>
+                </div>
+
+                <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
+                    <div class="text-sm opacity-90 mb-2">ARR (Annuel)</div>
+                    <div class="text-3xl font-bold"><span id="analyticsARR">0</span>€</div>
+                    <div class="text-sm mt-2 opacity-75">MRR × 12</div>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
+                    <div class="text-sm opacity-90 mb-2">Revenu moyen</div>
+                    <div class="text-3xl font-bold"><span id="analyticsAvg">0</span>€</div>
+                    <div class="text-sm mt-2 opacity-75">Par restaurant actif</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">💰 Répartition des Revenus</h3>
+                    <button onclick="openRevenueModal()" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">✏️ Modifier</button>
+                </div>
+                <div id="revenueBreakdown" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-lg mb-4">📊 Métriques Personnalisées</h3>
+                <div id="customMetrics" class="space-y-3"></div>
+                <button onclick="openMetricModal()" class="mt-4 w-full border-2 border-dashed border-gray-300 rounded p-3 hover:border-blue-500 hover:bg-blue-50 text-gray-600">
+                    + Ajouter une métrique
+                </button>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow mb-6">
-            <div class="p-4 border-b">
-                <h2 class="text-lg font-semibold">🚀 Projets par Catégorie</h2>
+        <!-- Categories Page -->
+        <div id="categories" class="page hidden max-w-7xl mx-auto px-4 py-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">🏷️ Catégories de Projets</h2>
+                <button onclick="openCategoryModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Catégorie</button>
             </div>
-            <div id="projectsByCategory" class="p-4"></div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-sm text-gray-600 mb-4">Organisez vos projets avec des catégories personnalisées</p>
+                <div id="categoriesList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow">
-            <div class="p-4 border-b">
-                <h2 class="text-lg font-semibold">✅ Tâches Prioritaires</h2>
-            </div>
-            <div id="urgentTasks" class="p-4 space-y-2"></div>
-        </div>
-    </div>
-
-    <!-- Projects Page -->
-    <div id="projects" class="page hidden max-w-7xl mx-auto px-4 py-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">📁 Tous les Projets</h2>
-            <div class="flex space-x-2">
-                <select id="filterCategory" onchange="loadProjects()" class="border rounded px-3 py-2 bg-white">
-                    <option value="">Toutes les catégories</option>
-                </select>
-                <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouveau Restaurant</button>
-            </div>
-        </div>
-        <div id="projectsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </div>
-
-    <!-- Tasks Page -->
-    <div id="tasks" class="page hidden max-w-7xl mx-auto px-4 py-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">📋 Gestion des Tâches</h2>
-            <button onclick="openTaskModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Tâche</button>
-        </div>
-        <div id="tasksBoard" class="grid md:grid-cols-4 gap-4">
-            <div class="bg-gray-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3">📝 À faire (<span id="todoCount">0</span>)</h3>
-                <div id="todoColumn" class="space-y-2"></div>
-            </div>
-            <div class="bg-blue-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3">🔄 En cours (<span id="doingCount">0</span>)</h3>
-                <div id="doingColumn" class="space-y-2"></div>
-            </div>
-            <div class="bg-red-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3">⚠️ Bloquées (<span id="blockedCount">0</span>)</h3>
-                <div id="blockedColumn" class="space-y-2"></div>
-            </div>
-            <div class="bg-green-100 rounded-lg p-4">
-                <h3 class="font-semibold mb-3">✅ Terminées (<span id="doneCount">0</span>)</h3>
-                <div id="doneColumn" class="space-y-2"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Phases Page -->
-    <div id="phases" class="page hidden max-w-7xl mx-auto px-4 py-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">🎯 Gestion des Phases</h2>
-            <button onclick="openPhaseModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Phase</button>
-        </div>
-        <div id="phasesList" class="space-y-4"></div>
-    </div>
-
-    <!-- Features Page -->
-    <div id="features" class="page hidden max-w-7xl mx-auto px-4 py-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">⚙️ Features Restaurant</h2>
-            <button onclick="openFeatureModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Feature</button>
-        </div>
-        <div id="featuresList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </div>
-
-    <!-- Analytics Page -->
-    <div id="analytics" class="page hidden max-w-7xl mx-auto px-4 py-6">
-        <h2 class="text-2xl font-bold mb-6">📈 Analytics Business</h2>
+        <!-- MODALS (same as before) -->
         
-        <div class="grid md:grid-cols-3 gap-6 mb-6">
-            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
-                <div class="text-sm opacity-90 mb-2">MRR Total</div>
-                <div class="text-3xl font-bold"><span id="analyticsMRR">0</span>€</div>
-                <div class="text-sm mt-2 opacity-75">Revenus mensuels récurrents</div>
+        <!-- Project Modal -->
+        <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <h3 id="projectModalTitle" class="text-xl font-bold mb-4">🍽️ Nouveau Restaurant</h3>
+                <div class="space-y-3">
+                    <input id="editProjectId" type="hidden">
+                    <input id="newProjectName" type="text" placeholder="Nom du restaurant *" class="w-full border rounded px-3 py-2">
+                    <input id="newProjectContact" type="email" placeholder="Email *" class="w-full border rounded px-3 py-2">
+                    <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2">
+                    <select id="newProjectCategory" class="w-full border rounded px-3 py-2">
+                        <option value="">Sélectionner une catégorie</option>
+                    </select>
+                    <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2">
+                    <input id="newProjectProgress" type="number" min="0" max="100" placeholder="Progression (%)" class="w-full border rounded px-3 py-2">
+                    <textarea id="newProjectNotes" placeholder="Notes..." class="w-full border rounded px-3 py-2 h-20"></textarea>
+                </div>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="closeProjectModal()" class="flex-1 border rounded py-2">Annuler</button>
+                    <button onclick="saveProject()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                </div>
             </div>
+        </div>
 
-            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
-                <div class="text-sm opacity-90 mb-2">ARR (Annuel)</div>
-                <div class="text-3xl font-bold"><span id="analyticsARR">0</span>€</div>
-                <div class="text-sm mt-2 opacity-75">MRR × 12</div>
-            </div>
-
-            <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
-                <div class="text-sm opacity-90 mb-2">Revenu moyen</div>
-                <div class="text-3xl font-bold"><span id="analyticsAvg">0</span>€</div>
-                <div class="text-sm mt-2 opacity-75">Par restaurant actif</div>
+        <!-- Task Modal -->
+        <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 id="taskModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Tâche</h3>
+                <div class="space-y-3">
+                    <input id="editTaskId" type="hidden">
+                    <input id="newTaskTitle" type="text" placeholder="Titre *" class="w-full border rounded px-3 py-2">
+                    <textarea id="newTaskDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
+                    <select id="newTaskProject" class="w-full border rounded px-3 py-2"></select>
+                    <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
+                        <option value="Stephen">Stephen</option>
+                        <option value="Eva">Eva</option>
+                    </select>
+                    <select id="newTaskPriority" class="w-full border rounded px-3 py-2">
+                        <option value="low">🟢 Basse</option>
+                        <option value="medium">🟡 Moyenne</option>
+                        <option value="high">🟠 Haute</option>
+                        <option value="urgent">🔴 Urgente</option>
+                    </select>
+                    <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="closeTaskModal()" class="flex-1 border rounded py-2">Annuler</button>
+                    <button onclick="saveTask()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg">💰 Répartition des Revenus</h3>
-                <button onclick="openRevenueModal()" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">✏️ Modifier</button>
+        <!-- Phase Modal -->
+        <div id="phaseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 id="phaseModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Phase</h3>
+                <div class="space-y-3">
+                    <input id="editPhaseId" type="hidden">
+                    <input id="newPhaseName" type="text" placeholder="Nom de la phase *" class="w-full border rounded px-3 py-2">
+                    <input id="newPhaseDuration" type="text" placeholder="Durée (ex: 7-10 jours)" class="w-full border rounded px-3 py-2">
+                    <select id="newPhaseColor" class="w-full border rounded px-3 py-2">
+                        <option value="blue">🔵 Bleu</option>
+                        <option value="green">🟢 Vert</option>
+                        <option value="yellow">🟡 Jaune</option>
+                        <option value="purple">🟣 Violet</option>
+                        <option value="orange">🟠 Orange</option>
+                        <option value="red">🔴 Rouge</option>
+                    </select>
+                    <textarea id="newPhaseDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
+                </div>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="closePhaseModal()" class="flex-1 border rounded py-2">Annuler</button>
+                    <button onclick="savePhase()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                </div>
             </div>
-            <div id="revenueBreakdown" class="space-y-2"></div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="font-bold text-lg mb-4">📊 Métriques Personnalisées</h3>
-            <div id="customMetrics" class="space-y-3"></div>
-            <button onclick="openMetricModal()" class="mt-4 w-full border-2 border-dashed border-gray-300 rounded p-3 hover:border-blue-500 hover:bg-blue-50 text-gray-600">
-                + Ajouter une métrique
-            </button>
+        <!-- Feature Modal -->
+        <div id="featureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 id="featureModalTitle" class="text-xl font-bold mb-4">⚙️ Nouvelle Feature</h3>
+                <div class="space-y-3">
+                    <input id="editFeatureId" type="hidden">
+                    <input id="newFeatureName" type="text" placeholder="Nom de la feature *" class="w-full border rounded px-3 py-2">
+                    <input id="newFeatureIcon" type="text" placeholder="Emoji (ex: 🎯)" class="w-full border rounded px-3 py-2">
+                    <textarea id="newFeatureDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
+                    <select id="newFeatureType" class="w-full border rounded px-3 py-2">
+                        <option value="included">✅ Inclus (gratuit)</option>
+                        <option value="premium">💎 Premium (payant)</option>
+                    </select>
+                    <input id="newFeaturePrice" type="number" placeholder="Prix mensuel (€)" class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="closeFeatureModal()" class="flex-1 border rounded py-2">Annuler</button>
+                    <button onclick="saveFeature()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Categories Page -->
-    <div id="categories" class="page hidden max-w-7xl mx-auto px-4 py-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">🏷️ Catégories de Projets</h2>
-            <button onclick="openCategoryModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Nouvelle Catégorie</button>
+        <!-- Category Modal -->
+        <div id="categoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 id="categoryModalTitle" class="text-xl font-bold mb-4">🏷️ Nouvelle Catégorie</h3>
+                <div class="space-y-3">
+                    <input id="editCategoryId" type="hidden">
+                    <input id="newCategoryName" type="text" placeholder="Nom de la catégorie *" class="w-full border rounded px-3 py-2">
+                    <input id="newCategoryIcon" type="text" placeholder="Emoji (ex: 🎯)" class="w-full border rounded px-3 py-2">
+                    <select id="newCategoryColor" class="w-full border rounded px-3 py-2">
+                        <option value="blue">🔵 Bleu</option>
+                        <option value="green">🟢 Vert</option>
+                        <option value="yellow">🟡 Jaune</option>
+                        <option value="purple">🟣 Violet</option>
+                        <option value="orange">🟠 Orange</option>
+                        <option value="red">🔴 Rouge</option>
+                        <option value="gray">⚪ Gris</option>
+                    </select>
+                    <textarea id="newCategoryDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-16"></textarea>
+                </div>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="closeCategoryModal()" class="flex-1 border rounded py-2">Annuler</button>
+                    <button onclick="saveCategory()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                </div>
+            </div>
         </div>
-        <div class="bg-white rounded-lg shadow p-6">
-            <p class="text-sm text-gray-600 mb-4">Organisez vos projets avec des catégories personnalisées</p>
-            <div id="categoriesList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        </div>
-    </div>
 
-    <!-- MODALS -->
-    
-    <!-- Project Modal -->
-    <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 id="projectModalTitle" class="text-xl font-bold mb-4">🍽️ Nouveau Restaurant</h3>
-            <div class="space-y-3">
-                <input id="editProjectId" type="hidden">
-                <input id="newProjectName" type="text" placeholder="Nom du restaurant *" class="w-full border rounded px-3 py-2">
-                <input id="newProjectContact" type="email" placeholder="Email *" class="w-full border rounded px-3 py-2">
-                <input id="newProjectPhone" type="tel" placeholder="Téléphone" class="w-full border rounded px-3 py-2">
-                <select id="newProjectCategory" class="w-full border rounded px-3 py-2">
-                    <option value="">Sélectionner une catégorie</option>
-                </select>
-                <input id="newProjectRevenue" type="number" placeholder="Revenu mensuel (€)" class="w-full border rounded px-3 py-2">
-                <input id="newProjectProgress" type="number" min="0" max="100" placeholder="Progression (%)" class="w-full border rounded px-3 py-2">
-                <textarea id="newProjectNotes" placeholder="Notes..." class="w-full border rounded px-3 py-2 h-20"></textarea>
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeProjectModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="saveProject()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+        <!-- Revenue Modal -->
+        <div id="revenueModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <h3 class="text-xl font-bold mb-4">📊 Répartition des Revenus</h3>
+                <div id="revenueInputs" class="space-y-2"></div>
+                <button onclick="addRevenueCategory()" class="w-full border-2 border-dashed border-gray-300 rounded p-2 mt-3 hover:bg-gray-50">+ Ajouter</button>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="closeRevenueModal()" class="flex-1 border rounded py-2">Annuler</button>
+                    <button onclick="saveRevenueBreakdown()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Task Modal -->
-    <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="taskModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Tâche</h3>
-            <div class="space-y-3">
-                <input id="editTaskId" type="hidden">
-                <input id="newTaskTitle" type="text" placeholder="Titre *" class="w-full border rounded px-3 py-2">
-                <textarea id="newTaskDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
-                <select id="newTaskProject" class="w-full border rounded px-3 py-2"></select>
-                <select id="newTaskAssignee" class="w-full border rounded px-3 py-2">
-                    <option value="Stephen">Stephen</option>
-                    <option value="Eva">Eva</option>
-                </select>
-                <select id="newTaskPriority" class="w-full border rounded px-3 py-2">
-                    <option value="low">🟢 Basse</option>
-                    <option value="medium">🟡 Moyenne</option>
-                    <option value="high">🟠 Haute</option>
-                    <option value="urgent">🔴 Urgente</option>
-                </select>
-                <input id="newTaskDeadline" type="date" class="w-full border rounded px-3 py-2">
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeTaskModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="saveTask()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Phase Modal -->
-    <div id="phaseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="phaseModalTitle" class="text-xl font-bold mb-4">➕ Nouvelle Phase</h3>
-            <div class="space-y-3">
-                <input id="editPhaseId" type="hidden">
-                <input id="newPhaseName" type="text" placeholder="Nom de la phase *" class="w-full border rounded px-3 py-2">
-                <input id="newPhaseDuration" type="text" placeholder="Durée (ex: 7-10 jours)" class="w-full border rounded px-3 py-2">
-                <select id="newPhaseColor" class="w-full border rounded px-3 py-2">
-                    <option value="blue">🔵 Bleu</option>
-                    <option value="green">🟢 Vert</option>
-                    <option value="yellow">🟡 Jaune</option>
-                    <option value="purple">🟣 Violet</option>
-                    <option value="orange">🟠 Orange</option>
-                    <option value="red">🔴 Rouge</option>
-                </select>
-                <textarea id="newPhaseDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closePhaseModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="savePhase()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Feature Modal -->
-    <div id="featureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="featureModalTitle" class="text-xl font-bold mb-4">⚙️ Nouvelle Feature</h3>
-            <div class="space-y-3">
-                <input id="editFeatureId" type="hidden">
-                <input id="newFeatureName" type="text" placeholder="Nom de la feature *" class="w-full border rounded px-3 py-2">
-                <input id="newFeatureIcon" type="text" placeholder="Emoji (ex: 🎯)" class="w-full border rounded px-3 py-2">
-                <textarea id="newFeatureDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-20"></textarea>
-                <select id="newFeatureType" class="w-full border rounded px-3 py-2">
-                    <option value="included">✅ Inclus (gratuit)</option>
-                    <option value="premium">💎 Premium (payant)</option>
-                </select>
-                <input id="newFeaturePrice" type="number" placeholder="Prix mensuel (€)" class="w-full border rounded px-3 py-2">
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeFeatureModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="saveFeature()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Category Modal -->
-    <div id="categoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="categoryModalTitle" class="text-xl font-bold mb-4">🏷️ Nouvelle Catégorie</h3>
-            <div class="space-y-3">
-                <input id="editCategoryId" type="hidden">
-                <input id="newCategoryName" type="text" placeholder="Nom de la catégorie *" class="w-full border rounded px-3 py-2">
-                <input id="newCategoryIcon" type="text" placeholder="Emoji (ex: 🎯)" class="w-full border rounded px-3 py-2">
-                <select id="newCategoryColor" class="w-full border rounded px-3 py-2">
-                    <option value="blue">🔵 Bleu</option>
-                    <option value="green">🟢 Vert</option>
-                    <option value="yellow">🟡 Jaune</option>
-                    <option value="purple">🟣 Violet</option>
-                    <option value="orange">🟠 Orange</option>
-                    <option value="red">🔴 Rouge</option>
-                    <option value="gray">⚪ Gris</option>
-                </select>
-                <textarea id="newCategoryDesc" placeholder="Description" class="w-full border rounded px-3 py-2 h-16"></textarea>
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeCategoryModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="saveCategory()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Revenue Modal -->
-    <div id="revenueModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 class="text-xl font-bold mb-4">📊 Répartition des Revenus</h3>
-            <div id="revenueInputs" class="space-y-2"></div>
-            <button onclick="addRevenueCategory()" class="w-full border-2 border-dashed border-gray-300 rounded p-2 mt-3 hover:bg-gray-50">+ Ajouter</button>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeRevenueModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="saveRevenueBreakdown()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Metric Modal -->
-    <div id="metricModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="metricModalTitle" class="text-xl font-bold mb-4">📊 Nouvelle Métrique</h3>
-            <div class="space-y-3">
-                <input id="editMetricId" type="hidden">
-                <input id="newMetricName" type="text" placeholder="Nom de la métrique *" class="w-full border rounded px-3 py-2">
-                <input id="newMetricValue" type="text" placeholder="Valeur *" class="w-full border rounded px-3 py-2">
-                <input id="newMetricUnit" type="text" placeholder="Unité (€, %, h...)" class="w-full border rounded px-3 py-2">
-                <select id="newMetricIcon" class="w-full border rounded px-3 py-2">
-                    <option value="📊">📊 Graphique</option>
-                    <option value="💰">💰 Argent</option>
-                    <option value="⏱️">⏱️ Temps</option>
-                    <option value="👥">👥 Personnes</option>
-                    <option value="📈">📈 Croissance</option>
-                    <option value="🎯">🎯 Objectif</option>
-                </select>
-            </div>
-            <div class="flex space-x-2 mt-4">
-                <button onclick="closeMetricModal()" class="flex-1 border rounded py-2">Annuler</button>
-                <button onclick="saveMetric()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+        <!-- Metric Modal -->
+        <div id="metricModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 id="metricModalTitle" class="text-xl font-bold mb-4">📊 Nouvelle Métrique</h3>
+                <div class="space-y-3">
+                    <input id="editMetricId" type="hidden">
+                    <input id="newMetricName" type="text" placeholder="Nom de la métrique *" class="w-full border rounded px-3 py-2">
+                    <input id="newMetricValue" type="text" placeholder="Valeur *" class="w-full border rounded px-3 py-2">
+                    <input id="newMetricUnit" type="text" placeholder="Unité (€, %, h...)" class="w-full border rounded px-3 py-2">
+                    <select id="newMetricIcon" class="w-full border rounded px-3 py-2">
+                        <option value="📊">📊 Graphique</option>
+                        <option value="💰">💰 Argent</option>
+                        <option value="⏱️">⏱️ Temps</option>
+                        <option value="👥">👥 Personnes</option>
+                        <option value="📈">📈 Croissance</option>
+                        <option value="🎯">🎯 Objectif</option>
+                    </select>
+                </div>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="closeMetricModal()" class="flex-1 border rounded py-2">Annuler</button>
+                    <button onclick="saveMetric()" class="flex-1 bg-blue-600 text-white rounded py-2">Enregistrer</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        let currentUser = null;
         let data = {
             settings: {
                 signedRestaurants: 0,
@@ -476,21 +515,122 @@
             customMetrics: []
         };
 
-        // Firebase
-        async function saveData() {
+        // Authentication Functions
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('authError').classList.add('hidden');
+        }
+
+        function showSignup() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.remove('hidden');
+            document.getElementById('authError').classList.add('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('authError');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
             try {
-                await window.dbSet(window.dbRef(window.db, 'restaurantOS'), data);
-                recalculateMetrics();
-            } catch (e) {
-                console.error('Erreur:', e);
+                const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
+                currentUser = userCredential.user;
+                await loadUserData();
+            } catch (error) {
+                console.error('Erreur login:', error);
+                if (error.code === 'auth/user-not-found') {
+                    showError('Utilisateur introuvable');
+                } else if (error.code === 'auth/wrong-password') {
+                    showError('Mot de passe incorrect');
+                } else if (error.code === 'auth/invalid-email') {
+                    showError('Email invalide');
+                } else {
+                    showError('Erreur de connexion: ' + error.message);
+                }
             }
         }
 
-        async function loadData() {
+        async function signup() {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            if (!name || !email || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('Le mot de passe doit contenir au moins 6 caractères');
+                return;
+            }
+
             try {
-                const snapshot = await window.dbGet(window.dbRef(window.db, 'restaurantOS'));
-                if (snapshot.exists()) {
-                    data = {...data, ...snapshot.val()};
+                const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
+                currentUser = userCredential.user;
+                
+                // Save user profile
+                await window.dbSet(window.dbRef(window.db, `users/${currentUser.uid}`), {
+                    name: name,
+                    email: email,
+                    createdAt: new Date().toISOString()
+                });
+
+                await loadUserData();
+            } catch (error) {
+                console.error('Erreur signup:', error);
+                if (error.code === 'auth/email-already-in-use') {
+                    showError('Cet email est déjà utilisé');
+                } else if (error.code === 'auth/invalid-email') {
+                    showError('Email invalide');
+                } else if (error.code === 'auth/weak-password') {
+                    showError('Mot de passe trop faible');
+                } else {
+                    showError('Erreur d\'inscription: ' + error.message);
+                }
+            }
+        }
+
+        async function logout() {
+            if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+                try {
+                    await window.signOut(window.auth);
+                    currentUser = null;
+                    document.getElementById('mainApp').classList.add('hidden');
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                } catch (error) {
+                    console.error('Erreur déconnexion:', error);
+                    alert('Erreur lors de la déconnexion');
+                }
+            }
+        }
+
+        async function loadUserData() {
+            try {
+                // Load user profile
+                const userSnapshot = await window.dbGet(window.dbRef(window.db, `users/${currentUser.uid}`));
+                if (userSnapshot.exists()) {
+                    const userData = userSnapshot.val();
+                    document.getElementById('currentUserName').textContent = userData.name || 'Utilisateur';
+                }
+
+                // Load shared data
+                const sharedSnapshot = await window.dbGet(window.dbRef(window.db, 'shared'));
+                if (sharedSnapshot.exists()) {
+                    const sharedData = sharedSnapshot.val();
+                    data = { ...data, ...sharedData };
+                    
                     // Ensure categories exist
                     if (!data.categories || data.categories.length === 0) {
                         data.categories = [
@@ -501,21 +641,77 @@
                             {id: '5', name: 'Terminés', icon: '🎉', color: 'purple', desc: 'Projets livrés'},
                             {id: '6', name: 'En Pause', icon: '⏸️', color: 'gray', desc: 'Projets mis en attente'}
                         ];
+                        await saveData();
                     }
                 }
+
+                // Setup real-time listener
+                window.dbOnValue(window.dbRef(window.db, 'shared'), (snapshot) => {
+                    if (snapshot.exists()) {
+                        data = { ...data, ...snapshot.val() };
+                        recalculateMetrics();
+                        refreshCurrentPage();
+                    }
+                });
+
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                
+                if (data.settings.darkMode) {
+                    document.body.classList.add('dark');
+                    document.getElementById('darkModeIcon').textContent = '☀️';
+                }
+
                 recalculateMetrics();
+                loadDashboard();
+                loadNotifications();
+            } catch (error) {
+                console.error('Erreur chargement données:', error);
+                alert('Erreur lors du chargement des données');
+            }
+        }
+
+        function refreshCurrentPage() {
+            const currentPage = document.querySelector('.page:not(.hidden)');
+            if (!currentPage) return;
+            
+            const pageId = currentPage.id;
+            if (pageId === 'dashboard') loadDashboard();
+            else if (pageId === 'projects') loadProjects();
+            else if (pageId === 'tasks') loadTasks();
+            else if (pageId === 'phases') loadPhases();
+            else if (pageId === 'features') loadFeatures();
+            else if (pageId === 'analytics') loadAnalytics();
+            else if (pageId === 'categories') loadCategories();
+        }
+
+        // Firebase Save Function
+        async function saveData() {
+            if (!currentUser) return;
+            
+            try {
+                await window.dbSet(window.dbRef(window.db, 'shared'), {
+                    settings: data.settings,
+                    projects: data.projects,
+                    tasks: data.tasks,
+                    phases: data.phases,
+                    features: data.features,
+                    categories: data.categories,
+                    notifications: data.notifications,
+                    revenueBreakdown: data.revenueBreakdown,
+                    customMetrics: data.customMetrics
+                });
             } catch (e) {
-                console.error('Erreur:', e);
+                console.error('Erreur sauvegarde:', e);
+                alert('Erreur lors de la sauvegarde');
             }
         }
 
         // Real-time metrics calculation
         function recalculateMetrics() {
-            // Calculate total MRR
             const totalMRR = data.projects.reduce((sum, p) => sum + (parseInt(p.revenue) || 0), 0);
             data.settings.currentMRR = totalMRR;
             
-            // Calculate signed restaurants (active category)
             const signedCategory = data.categories.find(c => c.name === 'Signés');
             if (signedCategory) {
                 data.settings.signedRestaurants = data.projects.filter(p => p.categoryId === signedCategory.id).length;
@@ -541,7 +737,6 @@
             document.getElementById('completedTasks').textContent = completed;
             document.getElementById('totalTasks').textContent = total;
             document.getElementById('completionPercent').textContent = total > 0 ? Math.round((completed / total) * 100) : 0;
-            document.getElementById('ongoingTasks').textContent = data.tasks.filter(t => t.status === 'doing').length;
         }
 
         // Navigation
@@ -617,7 +812,6 @@
         function loadDashboard() {
             updateDashboardMetrics();
             
-            // Projects by category
             const byCategory = document.getElementById('projectsByCategory');
             const grouped = {};
             data.categories.forEach(cat => {
@@ -640,7 +834,6 @@
                 `;
             }).join('');
             
-            // Urgent tasks
             const urgent = document.getElementById('urgentTasks');
             const priorityTasks = data.tasks.filter(t => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'done').slice(0, 5);
             urgent.innerHTML = priorityTasks.length > 0 ? priorityTasks.map(t => {
@@ -685,12 +878,10 @@
                 `;
             }).join('');
             
-            // Update category filter
             const select = document.getElementById('filterCategory');
             select.innerHTML = '<option value="">Toutes les catégories</option>' + 
                 data.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
             
-            // Update task project selector
             const taskSelect = document.getElementById('newTaskProject');
             taskSelect.innerHTML = '<option value="">Sélectionner un projet</option>' + 
                 data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
@@ -723,7 +914,6 @@
                 document.getElementById('newProjectNotes').value = '';
             }
             
-            // Populate category select
             const catSelect = document.getElementById('newProjectCategory');
             catSelect.innerHTML = '<option value="">Sélectionner une catégorie</option>' + 
                 data.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
@@ -771,8 +961,6 @@
             }
             
             closeProjectModal();
-            loadProjects();
-            loadDashboard();
             saveData();
         }
 
@@ -781,8 +969,6 @@
             if (confirm(`Supprimer "${project.name}" ?\n\nToutes les tâches associées seront aussi supprimées.`)) {
                 data.projects = data.projects.filter(p => p.id !== id);
                 data.tasks = data.tasks.filter(t => t.projectId !== id);
-                loadProjects();
-                loadDashboard();
                 saveData();
                 addNotification('success', `Restaurant "${project.name}" supprimé`, 'Maintenant');
             }
@@ -887,18 +1073,6 @@
             }
             
             closeTaskModal();
-            loadTasks();
-            loadDashboard();
-            saveData();
-        }
-
-        function changeTaskStatus(id) {
-            const task = data.tasks.find(t => t.id === id);
-            const statuses = ['todo', 'doing', 'blocked', 'done'];
-            const current = statuses.indexOf(task.status);
-            task.status = statuses[(current + 1) % statuses.length];
-            loadTasks();
-            loadDashboard();
             saveData();
         }
 
@@ -906,8 +1080,6 @@
             const task = data.tasks.find(t => t.id === id);
             if (confirm(`Supprimer la tâche "${task.title}" ?`)) {
                 data.tasks = data.tasks.filter(t => t.id !== id);
-                loadTasks();
-                loadDashboard();
                 saveData();
                 addNotification('success', 'Tâche supprimée', 'Maintenant');
             }
@@ -1001,7 +1173,6 @@
             }
             
             closePhaseModal();
-            loadPhases();
             saveData();
         }
 
@@ -1009,7 +1180,6 @@
             const phase = data.phases.find(p => p.id === id);
             if (confirm(`Supprimer la phase "${phase.name}" ?`)) {
                 data.phases = data.phases.filter(p => p.id !== id);
-                loadPhases();
                 saveData();
                 addNotification('success', `Phase "${phase.name}" supprimée`, 'Maintenant');
             }
@@ -1097,7 +1267,6 @@
             }
             
             closeFeatureModal();
-            loadFeatures();
             saveData();
         }
 
@@ -1105,7 +1274,6 @@
             const feature = data.features.find(f => f.id === id);
             if (confirm(`Supprimer la feature "${feature.name}" ?`)) {
                 data.features = data.features.filter(f => f.id !== id);
-                loadFeatures();
                 saveData();
                 addNotification('success', `Feature "${feature.name}" supprimée`, 'Maintenant');
             }
@@ -1194,9 +1362,6 @@
             }
             
             closeCategoryModal();
-            loadCategories();
-            loadProjects();
-            loadDashboard();
             saveData();
         }
 
@@ -1211,7 +1376,6 @@
             
             if (confirm(`Supprimer la catégorie "${category.name}" ?`)) {
                 data.categories = data.categories.filter(c => c.id !== id);
-                loadCategories();
                 saveData();
                 addNotification('success', `Catégorie "${category.name}" supprimée`, 'Maintenant');
             }
@@ -1221,7 +1385,6 @@
         function loadAnalytics() {
             updateDashboardMetrics();
             
-            // Revenue breakdown
             const breakdown = document.getElementById('revenueBreakdown');
             const total = data.revenueBreakdown.reduce((sum, r) => sum + (r.amount || 0), 0);
             
@@ -1237,7 +1400,6 @@
                 </div>
             ` : '<div class="p-4 text-gray-500 text-center text-sm">Aucune répartition configurée</div>';
             
-            // Custom metrics
             const metrics = document.getElementById('customMetrics');
             metrics.innerHTML = data.customMetrics?.length > 0 ? data.customMetrics.map(m => `
                 <div class="flex justify-between items-center p-3 border rounded hover:bg-gray-50">
@@ -1302,7 +1464,6 @@
             });
             
             closeRevenueModal();
-            loadAnalytics();
             saveData();
             addNotification('success', 'Répartition mise à jour', 'Maintenant');
         }
@@ -1367,7 +1528,6 @@
             }
             
             closeMetricModal();
-            loadAnalytics();
             saveData();
         }
 
@@ -1375,39 +1535,23 @@
             const metric = data.customMetrics.find(m => m.id === id);
             if (confirm(`Supprimer la métrique "${metric.name}" ?`)) {
                 data.customMetrics = data.customMetrics.filter(m => m.id !== id);
-                loadAnalytics();
                 saveData();
                 addNotification('success', `Métrique "${metric.name}" supprimée`, 'Maintenant');
             }
         }
 
         // Initialize
-        window.initApp = async function() {
-            await loadData();
-            
-            if (data.settings.darkMode) {
-                document.body.classList.add('dark');
-                document.getElementById('darkModeIcon').textContent = '☀️';
-            }
-            
-            loadDashboard();
-            loadProjects();
-            loadTasks();
-            loadPhases();
-            loadFeatures();
-            loadCategories();
-            loadAnalytics();
-            loadNotifications();
+        window.initApp = function() {
+            window.onAuthStateChanged(window.auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await loadUserData();
+                } else {
+                    document.getElementById('mainApp').classList.add('hidden');
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                }
+            });
         }
-
-        // Close modals on outside click
-        document.addEventListener('click', (e) => {
-            const notifPanel = document.getElementById('notificationsPanel');
-            const notifBtn = e.target.closest('button[onclick="toggleNotifications()"]');
-            if (!notifPanel.contains(e.target) && !notifBtn && !notifPanel.classList.contains('hidden')) {
-                notifPanel.classList.add('hidden');
-            }
-        });
     </script>
 </body>
 </html>
