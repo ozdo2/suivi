@@ -1853,19 +1853,24 @@
             // Apply dark mode
             if (data.settings.darkMode) {
                 document.body.classList.add('dark');
-                document.getElementById('darkModeIcon').textContent = '☀️';
+                const darkModeIcon = document.getElementById('darkModeIcon');
+                if (darkModeIcon) darkModeIcon.textContent = '☀️';
             }
             
             // Load all interfaces
             console.log('📊 Chargement des interfaces...');
-            loadDashboard();
-            loadProjects();
-            loadTasks();
-            loadPhases();
-            loadFeatures();
-            loadCategories();
-            loadAnalytics();
-            loadNotifications();
+            try {
+                loadDashboard();
+                loadProjects();
+                loadTasks();
+                loadPhases();
+                loadFeatures();
+                loadCategories();
+                loadAnalytics();
+                loadNotifications();
+            } catch (error) {
+                console.error('❌ Erreur lors du chargement:', error);
+            }
             
             console.log('✅ RestaurantOS prêt !');
             console.log('📈 État actuel:', {
@@ -1878,6 +1883,102 @@
             // Show success message
             if (data.projects.length === 0) {
                 console.log('💡 Aucun projet trouvé. Créez votre premier restaurant !');
+            }
+        }
+
+        function updateDashboardMetrics() {
+            try {
+                const totalMRR = data.settings.currentMRR || 0;
+                const signedRestaurants = data.settings.signedRestaurants || 0;
+                
+                const elem1 = document.getElementById('totalMRR');
+                if (elem1) elem1.textContent = totalMRR;
+                
+                const elem2 = document.getElementById('signedRestaurants');
+                if (elem2) elem2.textContent = signedRestaurants;
+                
+                const elem3 = document.getElementById('analyticsMRR');
+                if (elem3) elem3.textContent = totalMRR;
+                
+                const elem4 = document.getElementById('analyticsARR');
+                if (elem4) elem4.textContent = totalMRR * 12;
+                
+                const activeProjects = data.projects.filter(p => {
+                    const terminatedCat = data.categories.find(c => c.name === 'Terminés');
+                    return !terminatedCat || p.categoryId !== terminatedCat.id;
+                });
+                
+                const elem5 = document.getElementById('activeProjectsCount');
+                if (elem5) elem5.textContent = activeProjects.length;
+                
+                const avgRevenue = activeProjects.length > 0 ? Math.round(totalMRR / activeProjects.length) : 0;
+                const elem6 = document.getElementById('analyticsAvg');
+                if (elem6) elem6.textContent = avgRevenue;
+                
+                const completed = data.tasks.filter(t => t.status === 'done').length;
+                const total = data.tasks.length;
+                
+                const elem7 = document.getElementById('completedTasks');
+                if (elem7) elem7.textContent = completed;
+                
+                const elem8 = document.getElementById('totalTasks');
+                if (elem8) elem8.textContent = total;
+                
+                const elem9 = document.getElementById('completionPercent');
+                if (elem9) elem9.textContent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                
+                const elem10 = document.getElementById('ongoingTasks');
+                if (elem10) elem10.textContent = data.tasks.filter(t => t.status === 'doing').length;
+            } catch (error) {
+                console.error('❌ Erreur mise à jour métriques:', error);
+            }
+        }
+
+        function loadDashboard() {
+            try {
+                updateDashboardMetrics();
+                
+                // Projects by category
+                const byCategory = document.getElementById('projectsByCategory');
+                if (!byCategory) return;
+                
+                const grouped = {};
+                data.categories.forEach(cat => {
+                    grouped[cat.id] = data.projects.filter(p => p.categoryId === cat.id);
+                });
+                
+                byCategory.innerHTML = data.categories.map(cat => {
+                    const projects = grouped[cat.id] || [];
+                    const totalRevenue = projects.reduce((sum, p) => sum + (parseInt(p.revenue) || 0), 0);
+                    return `
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold">${cat.icon} ${cat.name}</h3>
+                                <span class="text-sm text-gray-600 dark:text-gray-400">${projects.length} projets • ${totalRevenue}€/mois</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div class="bg-${cat.color}-500 h-2 rounded-full" style="width: ${data.projects.length > 0 ? (projects.length / data.projects.length) * 100 : 0}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Urgent tasks
+                const urgent = document.getElementById('urgentTasks');
+                if (!urgent) return;
+                
+                const priorityTasks = data.tasks.filter(t => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'done').slice(0, 5);
+                urgent.innerHTML = priorityTasks.length > 0 ? priorityTasks.map(t => {
+                    const project = data.projects.find(p => p.id === t.projectId);
+                    return `
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded border-l-4 border-${t.priority === 'urgent' ? 'red' : 'orange'}-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" onclick="editTask('${t.id}')">
+                            <div class="font-medium text-sm dark:text-white">${t.title}</div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">${project ? project.name : 'Sans projet'} • ${t.assignee}</div>
+                        </div>
+                    `;
+                }).join('') : '<div class="text-gray-500 dark:text-gray-400 text-sm">Aucune tâche prioritaire</div>';
+            } catch (error) {
+                console.error('❌ Erreur chargement dashboard:', error);
             }
         }
 
